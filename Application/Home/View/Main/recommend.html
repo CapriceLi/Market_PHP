@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollbar.css" rel="stylesheet">
+<body  ng-app="myApp" ng-controller="RecommendController">
+	<include file="Public/detail_head" />
+	<ul id="focus_goods_list" class="wx_list_m">
+		<li ng-repeat="goods in goodslist">
+			<a href="__URL__/goodsdetail/gid/{{goods.gid}}">
+				<img ng-src="__ROOT__{{goods.url}}" class="img-polaroid main_good_img"/>
+				<p class="title ellipsis">
+				<span>{{goods.state}}</span>
+				{{goods.name}}
+				</p>
+				<p class="content ellipsis">价格：{{goods.price}}</p>
+				<p class="footer ellipsis">店铺名称：{{goods.storename}}</p>
+				<p class="footer ellipsis">剩余数量：{{goods.count}}</p>
+				<div class="button_list"></div>
+			</a>
+		</li>
+	</ul>
+	<!-- {{goodslist}} -->
+</body>
+</html>
+<script type="text/javascript">
+var app = angular.module('myApp', []);
+	app.controller('RecommendController', function($scope) {
+	$scope.goodslist = [];
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['get_recommend_g']);
+	client.get_recommend_g($.cookie('market_usertoken'),function (result) {
+		console.log(result);
+		for(var i=0; i<result.length;i++){
+			switch(result[i].state){
+				case "0":result[i].state = "待审核";break;
+				case "1":result[i].state = "拍卖中";break;
+				case "2":result[i].state = "销售中";break;
+				case "3":result[i].state = "已售完";break;
+			}
+		}
+		$scope.goodslist = result;
+		$scope.$apply();
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+})
+	// $("#main_page>a").attr("href","__URL__/personal");
+</script>

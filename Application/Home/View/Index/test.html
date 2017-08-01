@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<include file="Public/header" />
+</head>
+<body  ng-app="myApp" ng-controller="AdminController">
+	<table>
+		<thead>
+			<th>uid</th>
+			<th ng-repeat="goods in goodses">{{goods.gid}}</th>
+		</thead>
+		<tr ng-repeat="(uid,vals) in visits">
+			<th>{{uid}}</th>
+			<th ng-repeat="(gid,val) in vals">{{val}}</th>
+		</tr>
+	</table>
+	{{visits}}
+</body>
+<script type="text/javascript">
+	var app = angular.module('myApp', []);
+	app.controller('AdminController', function($scope) {
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['test']);
+		client.test($.cookie('market_usertoken'),function (result) {
+			console.log(result);
+			$scope.goodses = result.goods;
+			$scope.visits = result.vlist;
+			$scope.users = result.user;
+			$scope.$apply();
+		// console.log(result.addressComponent.city);
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	})
+	
+
+
+
+</script>
+</html>

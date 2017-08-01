@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<div class="alert alert-error market_error" style="top: 0" id="error"></div>
+<div class="alert alert-success" style="top: 0;display:none;" id="success"></div>
+<div class="login_main">
+	<div class="login_title">二手交易市场</div>
+	<br>
+	<div class="login_input">
+		
+		<div class="input-prepend">
+			<span class="add-on">手机号码:</span>
+			<input class="span2" type="text" id="userphone" pattern="[0-9]*"/>
+		</div>
+		<br>
+		<br>
+		<div class="input-prepend">
+			<span class="add-on">密码:</span>
+			<input class="span2" type="password" id="password"/>
+		</div>
+		<center>
+			<div class="submit"  id="submit_button">
+				<a>登录</a>
+			</div>
+		</center>
+		<center>
+			<div class="submit"  id="sign_button">
+				<a>注册</a>
+			</div>
+		</center>
+	</div>
+</div>
+<script type="text/javascript">
+	$("#userphone,#password").keypress(function(){
+		$(".error_sign").hide();
+	})
+	$("#sign_button").click(function(){
+		var strurl = "{:U('Home/Index/sign')}";
+		document.location=strurl;
+	})
+	var strurl = "{:U('Home/Main/main')}";
+	$("#submit_button").click(function(){
+		var userphone = $.trim($("#userphone").val());
+		var password = $.trim($("#password").val());
+
+		var jsonstr = {"userphone": userphone, "password": password};
+
+
+		console.log(jsonstr);
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['login']);
+		client.login(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+			if(jsonobj.errorcode=="001"){
+				$("#error").html("手机或密码错误");
+				$("#error").show();
+				setTimeout("$(\"#error\").hide();",2000);
+				$("#userphone").focus();
+			}else{ 
+				$.cookie('market_usertoken', "",{ expires: -1,path: '/market'}); 
+				$.cookie('market_uid',"",{ expires: -1,path: '/market'}); 
+				$.cookie('market_usertoken', jsonobj.utoken,{ expires: 7,path: '/market'}); 
+				$.cookie('market_uid', jsonobj.uid,{ expires: 7,path: '/market'}); 
+				document.location=strurl;
+				// setTimeout("document.location=strurl;",2000);
+			}
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	})
+</script>
+
+</html>

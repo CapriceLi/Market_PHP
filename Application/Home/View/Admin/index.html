@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<include file="Public/header" />
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<div style="width: 200px;height: 200px;"><img src="__ROOT__/Public/images/auth-qr.png"></div>
+	通过微信扫码登陆
+</body>
+</html>
+<script type="text/javascript">
+	function testsession(){
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/admin', ['login']);
+		client.login({},function (result) {
+			console.log(result);
+			if(result != 0){
+				$.cookie('market_admintoken', result,{ expires: 7200,path: '/'});
+				var strurl = "{:U('Home/Admin/main')}";
+				document.location=strurl;
+			}
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+
+	}
+
+	var interval = setInterval('testsession()',2000);
+</script>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollimg.css" rel="stylesheet">
+<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=At7arP68oRCImzqeg6zisuLubPognc7e"></script>
+<title>商品详情页</title>
+<body ng-app="myApp" ng-controller="OrderdetailController">
+	<include file="Public/detail_head"/>
+	<div class="sendlocation" ng-click="sendLocation()"><img src="__ROOT__/Public/images/map_icon.png"></div>
+	<div class="alert alert-error market_error" id="error" ng-bind="error_info"></div>
+	<div class="orderstate">
+		<div class="img">
+			<img ng-src="__ROOT__/Public/images/order{{orderdetail.state}}.png"></div>
+			<span class="orderstate_t order0">{{orderstate_1}}</span>
+			<span class="orderstate_t order1">{{orderstate_2}}</span>
+			<span class="orderstate_t order2">{{orderstate_3}}</span>
+			<span class="orderstate_t_t order0_t">{{orderdetail.createtime.substring(5,16)}}</span>
+			<span class="orderstate_t_t order1_t">{{orderdetail.confirmtime.substring(5,16)}}</span>
+			<span class="orderstate_t_t order2_t">{{orderdetail.finishtime.substring(5,16)}}</span>
+		</div>
+		<div class="od_store">
+			<a href="__URL__/storedetail/uid/{{orderdetail.uid2}}">
+				<div class="storelink">
+					<img src="__ROOT__/Public/images/store.png">
+					<span>{{orderdetail.storename}}</span>
+					<span class="arrow">></span>
+				</div>
+			</a>
+			<div class="connect_d" ng-hide="connect_show" ng-click="show_connect()">
+				<table>
+					<td>卖家名: {{orderdetail.realname2}}</td>
+					<td>手机: {{orderdetail.uphone2}}</td>
+				</table>
+			</div>
+			<div ng-show="connect_show">
+				<div class="connect"  ng-click="show_connect()"><img src="__ROOT__/Public/images/user.png">商家信息</div>
+				<a href="tel:{{orderdetail.uphone2}}">
+					<div class="connect_tel"><img src="__ROOT__/Public/images/phone.png">联系商家</div>
+				</div>
+			</a>
+		</div>
+		<div class="od_text">订单详情</div>
+		<div class="od_orderdetail">
+			<div class="goods">
+				<table>
+					<td style="width: 55%">{{orderdetail.name}}</td>
+					<td style="width: 20%;color: #9A9A9A">{{orderdetail.count}}</td>
+					<td>￥ {{orderdetail.o_price}}</td>
+				</table>
+			</div>
+			<div class="price">
+				<span>合计: {{orderdetail.price}}</span>
+			</div>
+		</div>
+
+		<div class="od_tradedetail">
+			<ul>
+				<li>收货人: {{orderdetail.realname}}</li>
+				<li>电话: {{orderdetail.uphone}}</li>
+				<li>地址: {{orderdetail.provname}} {{orderdetail.cityname}} {{orderdetail.address}}</li>
+				<li>交易时间: {{orderdetail.tradetime.substring(0,16)}}</li>
+				<li>订单号: {{orderdetail.ooid}}</li>
+			</ul>
+		</div>
+		<div class="od_commit" style="display: none;">
+			<div class="commit" ng-click="finishorder()">确认收货</div>
+		</div>
+		<div class="od_delete" style="display: none;">
+			<div class="delete" ng-click="deleteorder()">删除订单</div>
+		</div>
+	</body>
+	</html>
+
+	<script type="text/javascript">
+		var ooid = "{$ooid}";
+		var token = $.cookie('market_usertoken');
+		var app = angular.module('myApp', []);
+		app.controller('OrderdetailController', function($scope) {
+			$scope.connect_show = true;
+			$scope.orderstate_1 = '下单成功';
+			$scope.orderstate_2 = '卖家未确认';
+			$scope.orderstate_3 = '未完成交易';
+			$scope.show_connect = function(){
+				$scope.connect_show = !$scope.connect_show;
+			}
+			$scope.finishorder = function(){
+				jsonstr = {'ooid': ooid,'state':2};
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['ChangeOrderState']);
+				client.ChangeOrderState(JSON.stringify(jsonstr),function (result) {
+					res = JSON.parse(result);
+					console.log(res);
+					if(res.info == 'success'){
+						var strurl = "{:U('Home/Main/personal')}";
+						document.location=strurl;
+					}else{
+						$("#error").html("无法确认收货");
+						$("#error").show();
+						setTimeout("$(\"#error\").hide();",2000);
+					}
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+			}
+			$scope.deleteorder = function(){
+				jsonstr = {'ooid': ooid,'state':3};
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['ChangeOrderState']);
+				client.ChangeOrderState(JSON.stringify(jsonstr),function (result) {
+					res = JSON.parse(result);
+					console.log(res);
+					if(res.info == 'success'){
+						var strurl = "{:U('Home/Main/personal')}";
+						document.location=strurl;
+					}else{
+						$("#error").html("无法取消订单");
+						$("#error").show();
+						setTimeout("$(\"#error\").hide();",2000);
+					}
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+			}
+			$scope.sendLocation = function(){
+				var confirminfo = confirm("是否要发送您的位置？");
+				if (confirminfo) {
+					var geolocation = new BMap.Geolocation();
+					geolocation.getCurrentPosition(function(r){
+						if(this.getStatus() == BMAP_STATUS_SUCCESS){
+							// alert('您的位置：'+r.point.lng;+','+r.point.lat);
+							var longitude = r.point.lng;
+							var latitude = r.point.lat;
+							jsonstr = {'ooid': ooid,'type':1,'latitude':latitude,'longitude':longitude};
+							var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['SendLocationTemplate']);
+							client.SendLocationTemplate(JSON.stringify(jsonstr),function (result) {
+								console.log(result);
+							}, function (name, err) {
+								console.log(err);
+								return;
+							})
+						}
+						else {
+							alert('failed'+this.getStatus());
+						}        
+					},{enableHighAccuracy: true})
+				// wx.getLocation({
+				// success: function (res) {
+    //     		var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+    //    			var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+    //     		var speed = res.speed; // 速度，以米/每秒计
+    //     		var accuracy = res.accuracy; // 位置精度
+    //     		jsonstr = {'ooid': ooid,'type':1,'latitude':latitude,'longitude':longitude};
+				// var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['SendLocationTemplate']);
+				// client.SendLocationTemplate(JSON.stringify(jsonstr),function (result) {
+				// 	console.log(result);
+				// }, function (name, err) {
+				// 	console.log(err);
+				// 	return;
+				// })
+    //     	},
+    //     	cancel: function (res) {
+    //     		alert('用户拒绝授权获取地理位置');
+    //     	}
+    //     });
+				}
+			}
+})	
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+		client.GetUser($.cookie('market_usertoken'),function (result) {
+			user = JSON.parse(result);
+			$(".main_img").attr("src","__ROOT__"+user[0].url);
+			$("#main_page>a").html("<");
+			$("#main_page>a").attr("href","__URL__/personal");
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GerOderDetail']);
+		client.GerOderDetail(ooid,function (result) {
+			orderdetail = JSON.parse(result);
+			var scope = angular.element('[ng-controller=OrderdetailController]').scope();
+			scope.$apply(function($scope) {
+				$scope.orderdetail = orderdetail;
+				switch(orderdetail.state){
+					case '3':$scope.orderstate_1 = '订单已取消';break;
+					case '2':$scope.orderstate_3 = '完成交易'; $scope.orderstate_2 = '卖家确认'; break;
+					case '1':$scope.orderstate_2 = '卖家确认'; $(".od_commit").show();$(".sendlocation").show();break;
+					case '0':$(".od_delete").show();break;
+				}
+			})
+			console.log(orderdetail);
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+
+		
+	</script>

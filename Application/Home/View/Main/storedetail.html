@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<include file="Public/header" />
+	<link href="__ROOT__/Public/css/scrollbar.css" rel="stylesheet">
+	<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+	<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll_init.js"></script>
+	<title>卖家详情页</title>
+</head>
+<body>
+	<include file="Public/detail_head" />
+	<div class="sd_main">
+		<div class="sd_top">
+			<div class="sd_top_background">
+				<img>
+			</div>
+			<div id="nofocus" class="sd_top_focus">
+				<span class="icon-star-empty"></span>
+				关注
+			</div>
+			<div id="isfocus" class="sd_top_focus" style="width: 60px;">
+				<span class="icon-star"></span>
+				已关注
+			</div>
+			<div class="sd_top_img">
+				<img class="img-circle" >
+			</div>
+			<div class="sd_top_content">
+				<div class="title">
+					
+				</div>
+				<div class="describe">
+					
+				</div>
+			</div>
+		</div>
+		<div>
+			<center>
+				<div class="main_search">
+					<div class="btn-group" >
+						<button type="button" class="btn btn-default dropdown-toggle" 
+						data-toggle="dropdown">
+						<span id="dropdown_text"></span>
+						<span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu" role="menu">
+						<li>
+							<a id="type_all">全部</a>
+						</li>
+						<li>
+							<a id="type_1">日常用品</a>
+						</li>
+						<li>
+							<a id="type_2">电子产品</a>
+						</li>
+						<li>
+							<a id="type_3">文化产品</a>
+						</li>
+						<li>
+							<a id="type_4">食品</a>
+						</li>
+						<li>
+							<a id="type_0">其他</a>
+						</li>
+					</ul>
+				</div>
+				<input style="float:none !important;" type="text" class="main_search_text" placeholder="查找关键字"/>
+			</div>
+		</center>
+		<div id="wrapper" style="background:#eaeaea;top:162px;margin-bottom: 0;">
+			<div id="scroller" style="position: relative;">
+				<div id="pullDown">
+					<span class="pullDownIcon"></span>
+					<span class="pullDownLabel">下拉刷新...</span>
+				</div>
+				<ul id="thelist" class="wx_list_m">
+				</ul>
+				<div id="pullUp">
+					<span class="pullUpIcon"></span>
+					<span class="pullUpLabel">上拉加载更多...</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+<script type="text/javascript">
+	var type=-1;
+	var page=0;
+	var search="";
+	var pagesize=8;
+	var user;
+	$("#main_page>a").attr("href","{:U('Home/Main/personal')}");
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+	client.GetUser($.cookie('market_usertoken'),function (result) {
+		user = JSON.parse(result);
+		$(".main_img").attr("src","__ROOT__"+user[0].url);
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/store', ['GetStoreFromuname']);
+	client.GetStoreFromuname({$uid},$.cookie('market_usertoken'),function (result) {
+		$(".sd_top_img>img,.sd_top_background>img").attr("src","__ROOT__"+result.url);
+		$(".sd_top_content>.title").html(result.storename);
+		$(".sd_top_content>.describe").html(result.storedescribe);
+		switch(result.state){
+			case '1':$("#isfocus").show();break;
+			case '0':$("#nofocus").show();break;
+		}
+		console.log(result);
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	getList(type,search,page,pagesize);
+
+	$("#dropdown_text").text("全部");
+	$("#isfocus").click(function(){
+		$("#isfocus").hide();
+		$("#nofocus").show();
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['FocusStore']);
+		client.FocusStore({$uid},$.cookie('market_usertoken'),0,function (result) {
+			console.log(result);
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	})
+	$("#nofocus").click(function(){
+		$("#nofocus").hide();
+		$("#isfocus").show();
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['FocusStore']);
+		client.FocusStore({$uid},$.cookie('market_usertoken'),1,function (result) {
+			console.log(result);
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	})
+	$("#type_all").click(function(){
+		$("#dropdown_text").text("全部");
+		type=-1;
+		page=0;
+		getList(type,search,page,pagesize);
+
+	})
+	$("#type_1").click(function(){
+		$("#dropdown_text").text("日常");
+		type=1;
+		page=0;
+		getList(type,search,page,pagesize);
+	})
+	$("#type_2").click(function(){
+		$("#dropdown_text").text("电子");
+		type=2;
+		page=0;
+		getList(type,search,page,pagesize);
+	})
+	$("#type_3").click(function(){
+		$("#dropdown_text").text("文化");
+		type=3;
+		page=0;
+		getList(type,search,page,pagesize);
+	})
+	$("#type_4").click(function(){
+		$("#dropdown_text").text("食品");
+		type=4;
+		page=0;
+		getList(type,search,page,pagesize);
+	})
+	$("#type_0").click(function(){
+		$("#dropdown_text").text("其他");
+		type=0;
+		page=0;
+		getList(type,search,page,pagesize);
+	})
+
+	function getList(type,search,page,pagesize){
+		var jsonstr = {type:type, search:search, page:page, pagesize:pagesize,uid:{$uid}};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsListByUid']);
+		client.GetGoodsListByUid(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			var add = "";
+			var state = "";
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":state = "待审核";break;
+					case "1":state = "拍卖中";break;
+					case "2":state = "销售中";break;
+					case "3":state = "已售完";break;
+				}
+				add +="<li>"+
+				"<a href='__URL__/goodsdetail/gid/"+jsonobj[i].gid+"'>"+
+				"<img src=\"__ROOT__"+jsonobj[i].url+"\" class=\"img-polaroid main_good_img\"/>"+
+				"<p class=\"title ellipsis\">"+
+				"<span>"+state+"</span>"+jsonobj[i].name+
+				"</p>"+
+				"<p class=\"content ellipsis\">价格：￥"+jsonobj[i].price+"</p>"+
+				"<p class=\"footer ellipsis\">店铺名称："+jsonobj[i].storename+"</p>"+
+				"<p class=\"footer ellipsis\">剩余数量："+jsonobj[i].count+"</p>"+
+				// "<p class=\"footer ellipsis\">上架时间："+jsonobj[i].createtime+"</p>"+
+				"<div class=\"button_list\"></div>"+
+				"</a>"+
+				"</li>"
+			}
+			$("#thelist").html(add);
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function addList(type,search,page,pagesize){
+		var jsonstr = {type:type, search:search, page:page, pagesize:pagesize,uid:{$uid}};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsListByUid']);
+		client.GetGoodsListByUid(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			var add = "";
+			var state = "";
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":state = "待审核";break;
+					case "1":state = "拍卖中";break;
+					case "2":state = "销售中";break;
+					case "3":state = "已售完";break;
+				}
+				add +="<li>"+
+				"<a href=\"'__URL__/goodsdetail/gid/"+jsonobj[i].gid+"'\">"+
+				"<img src=\"__ROOT__"+jsonobj[i].url+"\" class=\"img-polaroid main_good_img\"/>"+
+				"<p class=\"title ellipsis\">"+
+				"<span>"+state+"</span>"+jsonobj[i].name+
+				"</p>"+
+				"<p class=\"content ellipsis\">价格：￥"+jsonobj[i].price+"</p>"+
+				"<p class=\"footer ellipsis\">店铺名称："+jsonobj[i].storename+"</p>"+
+				"<p class=\"footer ellipsis\">剩余数量："+jsonobj[i].count+"</p>"+
+				// "<p class=\"footer ellipsis\">上架时间："+jsonobj[i].createtime+"</p>"+
+				"<div class=\"button_list\"></div>"+
+				"</a>"+
+				"</li>"
+			}
+			$("#thelist").append(add);
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+
+
+
+	/**
+		 * 下拉刷新 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullDownAction () {
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				search = "";
+				el = document.getElementById('thelist');
+				$("#thelist").empty();
+				page=0;
+				getList(type,search,page,pagesize);
+			}, 1000);	
+		// <-- Simulate network congestion, remove setTimeout from production!
+	}
+
+		/**
+		 * 滚动翻页 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullUpAction () { 
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				el = document.getElementById('thelist');
+				page++;
+				addList(type,search,page,pagesize);
+			}, 1000);	// <-- Simulate network congestion, remove setTimeout from production!
+		} 
+		
+		$('.main_search_text').keydown(function(e){
+			if(e.keyCode==13){
+				search=$(".main_search_text").val().trim();
+				type = -1;
+				page = 0;
+				getList(-1,search,page,pagesize)	
+			}})
+		</script>
+		</html>

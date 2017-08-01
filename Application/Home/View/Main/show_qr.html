@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollimg.css" rel="stylesheet">
+<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+<title></title>
+<body>
+<div class="qr_img">
+	<img src="">
+	</div>
+</body>
+<script type="text/javascript">
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetQRByqrid']);
+		client.GetQRByqrid({$qrid},function (result) {
+			console.log(result);
+			$(".qr_img>img").attr('src',"__ROOT__"+result);
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+</script>
+</html>

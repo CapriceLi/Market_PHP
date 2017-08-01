@@ -1,0 +1,29 @@
+https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx951ac1092ad9a5bf&secret=4918f8fab950eddfba7e985f76a97b46
+
+
+{
+     "button":[
+     {	
+          "type":"view",
+          "name":"商城入口",
+          "url":"http://open.weixin.qq.com/connect/oauth2/authorize?appid=wx951ac1092ad9a5bf&redirect_uri=http://www.jasper-website.site/market/oauth2.php&response_type=code&scope=snsapi_base&state=STATE"
+      },
+      {"name":"订单管理",
+      "sub_button":[
+      {
+      	"type":"click",
+        "name":"今日我购买的商品",
+        "key":"order1"
+      },
+      {
+      	"type":"click",
+        "name":"今日我卖出的商品",
+        "key":"order2"
+      },
+      {
+      	"type":"click",
+        "name":"我要确认的订单",
+        "key":"myorder"
+      }]
+      }]
+}

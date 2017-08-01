@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<include file="Public/header" />
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<body>
+	<h1></h1>
+</body>
+</html>
+<script type="text/javascript">
+	switch({$info}){
+		case 0:
+		$('h1').html("登陆成功!");
+		setTimeout("WeixinJSBridge.call('closeWindow');",500)
+		break;
+		case 1:
+		$('h1').html("登陆失败!");
+		break;
+	}
+
+
+</script>

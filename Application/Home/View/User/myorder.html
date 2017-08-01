@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<html>
+<head>
+	<title>用户修改页</title>
+	<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+	<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll_init.js"></script>
+	<link href="__ROOT__/Public/css/scrollbar.css" rel="stylesheet">
+</head>
+<body ng-app="myApp" ng-controller="MyOrderController">
+	<include file="Public/detail_head" />
+	<div class="myorder_list">
+		<div id="wrapper" style="margin-top:10px;top: 30px;">
+				<div id="scroller">
+					<div id="pullDown">
+						<span class="pullDownIcon"></span>
+						<span class="pullDownLabel">下拉刷新...</span>
+					</div>
+					<ul id="my_order_list" class="wx_list_m">
+						<li ng-repeat="order in orders">
+							<a href="__URL__/userorderdetail/ooid/{{order.ooid}}">
+								<img ng-src="__ROOT__{{order.url}}" class="img-polaroid main_good_img"/>
+								<p class="title ellipsis">
+									<span>{{order.state}}</span>
+									{{order.name}}
+								</p>
+								<p class="content ellipsis">购买价格：{{order.price}}</p>
+								<p class="footer ellipsis">交易地址：{{order.address}}</p>
+								<p class="footer ellipsis">交易时间：{{order.tradetime}}</p>
+								<div class="button_list"></div>
+							</a>
+						</li>
+					</ul>
+					<div id="pullUp">
+						<span class="pullUpIcon"></span>
+						<span class="pullUpLabel">上拉加载更多...</span>
+					</div>
+				</div>
+				
+			</div>
+
+	</div>
+</body>
+</html>
+<script type="text/javascript">
+	var app = angular.module('myApp', []);
+	app.controller('MyOrderController', function($scope) {
+
+	})
+	$("#main_page>a").html("<");
+	$(".detail_head_title").html("我要处理订单");
+	$("#main_page>a").attr("href","{:U('Home/Main/user')}");
+		var flag = 0
+	var token = $.cookie('market_usertoken');
+	var type=-1;
+	var page=0;
+	var pagesize=8;
+	getOrderList (type,page,pagesize);
+	function getOrderList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetMyOrderList']);
+		client.GetMyOrderList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":jsonobj[i].state = "待确认";break;
+					case "1":jsonobj[i].state = "交易中";break;
+					case "2":jsonobj[i].state = "已完成";break;
+				}
+			}
+
+			var scope = angular.element('[ng-controller=MyOrderController]').scope();
+			scope.$apply(function($scope) {
+				$scope.orders = jsonobj;
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function addOrderList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		console.log(jsonstr);
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetMyOrderList']);
+		client.GetMyOrderList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":jsonobj[i].state = "待确认";break;
+					case "1":jsonobj[i].state = "交易中";break;
+					case "2":jsonobj[i].state = "已完成";break;
+				}
+			}
+
+			var scope = angular.element('[ng-controller=MyOrderController]').scope();
+			scope.$apply(function($scope) {
+				console.log(jsonobj);
+				$scope.orders=$scope.orders.concat(jsonobj);
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function pullDownAction () {
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				el = document.getElementById('thelist');
+				$("#thelist").empty();
+				page=0;
+				getOrderList(type,page,pagesize);
+			}, 1000);	// <-- Simulate network congestion, remove setTimeout from production!
+		}
+
+		/**
+		 * 滚动翻页 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullUpAction () { 
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				page++;
+				el = document.getElementById('thelist');
+				addOrderList(type,page,pagesize);
+			}, 1000);	// <-- Simulate network congestion, remove setTimeout from production!
+		} 
+</script>

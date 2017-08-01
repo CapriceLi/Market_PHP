@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>后台管理系统</title>
+	<script type="text/javascript" src="__ROOT__/Public/js/jquery-1.11.2.min.js"></script>
+	<script src="__ROOT__/Public/js/highstock.js"></script>
+	<script src="__ROOT__/Public/js/modules/drilldown.js"></script>
+	<script src="__ROOT__/Public/js/bootstrap3.min.js"></script>
+	<link href="__ROOT__/Public/css/bootstrap3.min.css" media="screen" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="__ROOT__/Public/css/admin2.css">
+	<script type="text/javascript" src="__ROOT__/Public/js/angular.min.js"></script>
+	<script type="text/javascript" src="__ROOT__/Public/js/hprose/hprose.js" flashpath="__ROOT__/Public/js/hprose/"></script>
+</head>
+<body ng-app="myApp" ng-controller="AdminController">
+
+	<div class="container-fluid" style="margin: 0px;padding: 0px;">
+		<div class="row">
+			<div class="col-md-3">
+				<ul class="admin_nav">
+					<li class="nav_index">后台管理</li>
+					<li id="manage_market" class="dropup"><div class="button_div" ng-click="show_market_nav()">商城管理<span class="caret"></span></div></li>
+					<ul class="col-md-offset-1 market_nav">
+						<li class="nav_button active"><div class="button_div" ng-click="show_order()" href="#">未审核的商品<span  class="badge" style="margin-left: 5px;" id="order_count"></span></div></li>
+						<li class="nav_button"><div class="button_div" ng-click="show_user()" href="#">用户列表</div></li>
+						<li class="nav_button"><div class="button_div" ng-click="show_goods()" href="#">商品列表</div></li>
+						<li class="nav_button"><div class="button_div" ng-click="show_uvisit()" href="#">用户行为</div></li>
+					</ul>
+					<li class="dropup" id="manage_map"><div class="button_div" ng-click="show_map_nav()">图标分析<span class="caret"></span></div></li>
+					<ul class="col-md-offset-1 map_nav">
+						<li class="nav_button"><div class="button_div" ng-click="show_gt_pie()">商品种类分布图</div></li>
+						<li class="nav_button"><div class="button_div" ng-click="show_gtime_line()">销售时段图</div></li>
+						<li class="nav_button"><div class="button_div" ng-click="show_gs_column()">店铺销售情况图</div></li>
+						<li class="nav_button"><div class="button_div" ng-click="show_gts_column()">各种种类销售情况</div></li>
+					</ul>
+				</ul>
+			</div>
+
+			<div class="admin_show col-md-9">
+				<div class="admin_table order_table">
+					<div class="table-responsive">
+						<table class="table table-hover" style="width: 1000px;">
+							<thead>
+								<tr>
+									<th>商品ID</th>
+									<th>商品名称</th>
+									<th>商品数量</th>
+									<th>商品价格</th>
+									<!-- <th>商品简介</th> -->
+									<th>用户名</th>
+									<th>商品图片</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tr ng-repeat="goods in goodses">
+								<th ng-bind="goods.gid"></th>
+								<th ng-bind="goods.name"></th>
+								<th ng-bind="goods.count"></th>
+								<th>￥<span  ng-bind="goods.price"></span> </th>
+								<!-- <th ng-bind="goods.discribe"></th> -->
+								<th ng-bind="goods.uname"></th>
+								<th>
+									<img class="admin_pic" href="#" ng-click="show_pictrue(attach,$event)" ng-repeat="attach in goods.attachs" ng-src="__ROOT__{{attach}}">
+								</th>
+								<th><button class="btn btn-success"  ng-click="check(goods.gid)">审核通过</button> <button class="btn btn-danger" ng-click="uncheck(goods.gid)">拒绝</button></th>
+							</tr>
+						</table>
+					</div>
+					<nav>
+						<ul class="pager">
+							<li id="order_left" ng-click="order_left()" class="disabled"><a href="#"><span aria-hidden="true">&larr;</span> 上一页</a></li>
+							第<span id="order_page"> 1 </span>页
+							<li id="order_right" ng-click="order_right()"><a href="#">下一页 <span aria-hidden="true">&rarr;</span></a></li>
+						</ul>
+					</nav>
+				</div>
+				<div class="admin_table user_table">
+					<div class="table-responsive">
+						<table class="table table-hover" style="width: 1000px;">
+							<thead>
+								<tr>
+									<th>用户ID</th>
+									<th>用户手机</th>
+									<th>用户昵称</th>
+									<th>用户Openid</th>
+									<th>用户头像</th>
+									<th>用户Email</th>
+									<th>用户商店</th>
+									<!-- <th>用户商店描述</th> -->
+									<th>用户真实姓名</th>
+									<th>用户地区</th>
+									<th>用户微信绑定情况</th>
+									<th>用户状态</th>
+								</tr>
+							</thead>
+							<tr ng-repeat="user in users">
+								<th ng-bind="user.uid"></th>
+								<th ng-bind="user.uphone"></th>
+								<th ng-bind="user.uname"></th>
+								<th ng-bind="user.openid"></th>
+								<th>
+									<img class="admin_pic" href="#" ng-click="show_pictrue(user.url,$event)" ng-src="__ROOT__{{user.url}}">
+								</th>
+								<th ng-bind="user.email"></th>
+								<th ng-bind="user.storename"></th>
+								<!-- <th ng-bind="user.storedescribe"></th> -->
+								<th ng-bind="user.realname"></th>
+								<th ng-bind="user.address"></th>
+								<th><span class="label state_label" ng-class="{'label-success':user.weixin=='已绑定微信','label-danger':user.weixin=='未绑定微信'}" ng-bind="user.weixin"></span></th>
+								<th><span class="label state_label"  ng-class="{'label-success':user.del=='正常','label-danger':user.del=='未激活'}" ng-bind="user.del"></span></th>
+							</tr>
+						</table>
+					</div>
+					<nav>
+						<ul class="pager">
+							<li id="user_left" ng-click="user_left()" class="disabled"><a href="#"><span aria-hidden="true">&larr;</span> 上一页</a></li>
+							第<span id="user_page"> 1 </span>页
+							<li id="user_right" ng-click="user_right()"><a href="#">下一页 <span aria-hidden="true">&rarr;</span></a></li>
+						</ul>
+					</nav>
+				</div>
+				<div class="admin_table goods_table">
+					<div class="table-responsive">
+						<table class="table table-hover" style="width: 1000px;">
+							<thead>
+								<tr>
+									<th>商品ID</th>
+									<th>商品名称</th>
+									<th>商品数量</th>
+									<th>商品价格</th>
+									<!-- <th>商品简介</th> -->
+									<th>用户名</th>
+									<th>商品图片</th>
+									<th>商品状态</th>
+								</tr>
+							</thead>
+							<tr ng-repeat="goods in allgoodses">
+								<th ng-bind="goods.gid"></th>
+								<th ng-bind="goods.name"></th>
+								<th ng-bind="goods.count"></th>
+								<th>￥<span  ng-bind="goods.price"></span> </th>
+								<!-- <th ng-bind="goods.discribe"></th> -->
+								<th ng-bind="goods.uname"></th>
+								<th>
+									<img class="admin_pic" href="#" ng-click="show_pictrue(attach,$event)" ng-repeat="attach in goods.attachs" ng-src="__ROOT__{{attach}}">
+								</th>
+								<th><span class="label state_label" ng-class={'label-success':goods.del=='正常','label-warning':goods.del=='待审核','label-danger':goods.del=='下架'}  ng-bind="goods.del"></span></th>
+							</tr>
+						</table>
+					</div>
+					<nav>
+						<ul class="pager">
+							<li id="goods_left" ng-click="goods_left()" class="disabled"><a href="#"><span aria-hidden="true">&larr;</span> 上一页</a></li>
+							第<span id="goods_page"> 1 </span>页
+							<li id="goods_right" ng-click="goods_right()"><a href="#">下一页 <span aria-hidden="true">&rarr;</span></a></li>
+						</ul>
+					</nav>
+				</div>
+
+				<div class="admin_table uvisit_table">
+					<table  class="table table-hover" >
+						<thead>
+							<th>uid</th>
+							<th ng-repeat="goods in goodses">{{goods.gid}}</th>
+						</thead>
+						<tr ng-repeat="(uid,vals) in visits">
+							<th>{{uid}}</th>
+							<th ng-repeat="(gid,val) in vals">{{val}}</th>
+						</tr>
+					</table>
+				</div>
+				<div class="admin_container map1" style="display: none;"></div>
+				<div class="admin_container map2" style="display: none;"></div>
+				<div class="admin_container map3" style="display: none;"></div>
+				<center>
+					<ul class="pager select_year">
+						<li class="previous"><a id="left" href="#" onclick="left()"><span aria-hidden="true">&larr;</span> 上一年</a></li>  <span class="year" id="year">2016年</span>
+						<li class="next"><a id="right" href="#" onclick="right()">下一年 <span aria-hidden="true">&rarr;</span></a></li>
+					</ul>
+				</center>
+				<div class="admin_container map4" style="display: none;"></div>
+			</div>
+		</div>
+
+		<div class="model_cover" ng-click="hideMask()" ></div>
+		<div class="showpic">
+			<img src="">
+		</div>
+	</div>
+
+
+</div>
+
+
+
+</body>
+</html>
+
+<script type="text/javascript">
+	var selected = 1;
+	var page=0;
+	var pagesize=5;
+	var order_page=0,goods_page=0,user_page=0;
+	var app = angular.module('myApp', []);
+	app.controller('AdminController', function($scope) {
+		$scope.goodses = [];
+		$scope.users = [];
+		$scope.allgoodses = []
+		init_page();
+		get_goods($scope);
+		$scope.show_order = function(){
+			if (selected==1) {return;}
+			selected=1;
+			init_page();
+			get_goods($scope);
+			$(".admin_table").slideUp();
+			$('.order_table').slideDown();
+			$('.admin_container').slideUp();
+			$(".select_year").slideUp();
+
+		}
+		$scope.show_user = function(){
+			if (selected==2) {return;}
+			selected=2;
+			init_page();
+			get_users($scope);
+			$(".admin_table").slideUp();
+			$(".user_table").slideDown();
+			$('.admin_container').slideUp();
+			$(".select_year").slideUp();
+		}
+		$scope.show_goods =function(){
+			if (selected==3) {return;}
+			selected=3;
+			init_page();
+			get_all_goods($scope);
+			$(".admin_table").slideUp();
+			$(".goods_table").slideDown();
+			$('.admin_container').slideUp();
+			$(".select_year").slideUp();
+
+		}
+		$scope.show_uvisit = function(){
+			if (selected==8) {return;}
+			selected=8;
+			get_uvisit($scope);
+			$(".admin_table").slideUp();
+			$(".uvisit_table").slideDown();
+			$('.admin_container').slideUp();
+			$(".select_year").slideUp();
+		}
+		$scope.show_map_nav = function(){
+			$('.map_nav').slideToggle();
+			if($("#manage_map").attr('class')=='dropup'){
+				$("#manage_map").removeClass('dropup');
+				return
+			}
+			$("#manage_map").addClass('dropup');
+		}
+		$scope.show_market_nav = function(){
+			$('.market_nav').slideToggle();
+			if($("#manage_market").attr('class')=='dropup'){
+				$("#manage_market").removeClass('dropup');
+				return
+			}
+			$("#manage_market").addClass('dropup');
+		}
+		$scope.order_right = function(){
+			if(page!=order_page){
+				page = page+1;
+				$("#order_page").html(page+1);
+				get_goods($scope);
+				$("#order_left").removeClass('disabled');
+				if(page == order_page){
+					$("#order_right").addClass('disabled');
+				}
+			}
+		}
+		$scope.order_left = function(){
+			if(page!=0){
+				page = page-1;
+				$("#order_page").html(page+1);
+				get_goods($scope);
+				$("#order_right").removeClass('disabled');
+				if(page==0){
+					$("#order_left").addClass('disabled');
+				}
+			}
+		}
+		$scope.user_right = function(){
+			if(page != user_page){
+				page = page+1;
+				$("#user_page").html(page+1);
+				get_users($scope);
+				$("#user_left").removeClass('disabled');
+				if(page == user_page){
+					$("#user_right").addClass('disabled');
+				}
+
+			}
+		}
+		$scope.user_left = function(){
+			if(page!=0){
+				page = page-1;
+				$("#user_page").html(page+1);
+				get_users($scope);
+				$("#user_right").removeClass('disabled');
+				if(page==0){
+					$("#user_left").addClass('disabled');
+				}
+			}
+		}
+		$scope.goods_right = function(){
+			if(page != goods_page){
+				page = page+1;
+				$("#goods_page").html(page+1);
+				get_all_goods($scope);
+				$("#goods_left").removeClass('disabled');
+				if(page == goods_page){
+					$("#goods_right").addClass('disabled');
+				}
+			}
+		}
+		$scope.goods_left = function(){
+			if(page!=0){
+				page = page-1;
+				$("#goods_page").html(page+1);
+				get_all_goods($scope);
+				$("#goods_right").removeClass('disabled');
+				if(page==0){
+					$("#goods_left").addClass('disabled');
+				}
+			}
+		}
+		$scope.check = function(id){
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['CheckGoods']);
+			client.CheckGoods(id,function (result) {
+				if(result==1){
+					alert("审核成功");
+					location.reload();
+				}else{
+					alert("审核失败");
+				}
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+		}
+		$scope.uncheck = function(id){
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['UnCheckGoods']);
+			client.UnCheckGoods(id,function (result) {
+				if(result==1){
+					alert("拒绝成功");
+					location.reload();
+				}else{
+					alert("拒绝失败");
+				}
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+		}
+		$scope.offsetX=0;
+		$scope.offsetY=0;
+		$scope.show_pictrue = function(url,$event){
+			$scope.offsetX=event.clientX-480;
+			$scope.offsetY=event.clientY;
+			$(".showpic").attr("style","left:"+$scope.offsetX+"px;top:"+$scope.offsetY+"px;");
+			$(".showpic>img").attr('src','__ROOT__'+url);
+			$(".showpic").show();
+			$(".model_cover").fadeIn(500);
+			$(".showpic").animate({width:'600px',height:'600px',left:'0px',top:'77px'},300);
+		}
+		$scope.hideMask = function(){
+			$(".model_cover").fadeOut(500);
+			$(".showpic").animate({width:'0px',height:'0px',left:$scope.offsetX+'px',top:$scope.offsetY+'px'},300);
+			setTimeout("$('.showpic').hide();",300)
+		}
+
+		$scope.show_gt_pie = function(){
+			if (selected==4) {return;}
+			selected=4;
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['gt_pie']);
+			client.gt_pie({},function (result) {
+				console.log(result);
+				$(".admin_container").slideUp();
+				$(".admin_table").slideUp();
+				$(".select_year").slideUp();
+				$(".map1").slideDown();
+				$('.map1').highcharts({
+					chart: {
+						type: 'pie'
+					},
+					title: {
+						text: '商品种类分布图'
+					},
+					subtitle: {
+						text: ''
+					},
+					plotOptions: {
+						pie: {
+							allowPointSelect: true,
+							cursor: 'pointer',
+							dataLabels: {
+								enabled: false
+							},
+							showInLegend: true
+						},
+						series: {
+							dataLabels: {
+								enabled: true,
+								format: '{point.name}: {point.y:.1f}%'
+							}
+						}
+					},
+
+					tooltip: {
+						headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+						pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}%</b> of total<br/>'
+					},
+					series: [{
+						name: '商品类型',
+						colorByPoint: true,
+						data: [{
+							name: '日常用品',
+							y: result.count1,
+						}, {
+							name: '电子产品',
+							y: result.count2,
+						}, {
+							name: '文化产品',
+							y: result.count3,
+						}, {
+							name: '食品',
+							y: result.count4,
+						}, {
+							name: '其他',
+							y: result.count0,
+						}]
+					}],
+				});
+				
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+		}
+		$scope.show_gtime_line = function(){
+			if (selected==5) {return;}
+			selected=5;
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['gtime_sale']);
+			client.gtime_sale({},function (result) {
+				console.log(result);
+				$(".admin_container").slideUp();
+				$(".admin_table").slideUp();
+				$(".select_year").slideUp();
+				$(".map2").slideDown();
+				$('.map2').highcharts('StockChart', {
+					rangeSelector : {
+						selected : 1
+					},
+
+					title : {
+						text : '每日成交量'
+					},
+
+					series : [{
+						name : '当日成交量',
+						data : result,
+						marker : {
+							enabled : true,
+							radius : 3
+						},
+						shadow : true,
+						tooltip : {
+							valueDecimals : 2
+						}
+					}]
+				});
+				
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+		}
+		$scope.show_gs_column = function(){
+			if (selected==6) {return;}
+			selected=6;
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['show_gs_sale']);
+			client.show_gs_sale({},function (result) {
+				console.log(result);
+				var data = [];
+				var series = [];
+				for(var i=0;i<result.stroesale.length;i++){
+					data[i]={name:result.stroesale[i].storename,y:parseInt(result.stroesale[i].count),drilldown:result.stroesale[i].storename};
+					series[i] = {name:result.drilldown[i].name,id:result.drilldown[i].name,data:[
+						['日常用品',result.drilldown[i].data[1]],
+						['电子产品',result.drilldown[i].data[2]],
+						['文化产品',result.drilldown[i].data[3]],
+						['食品',result.drilldown[i].data[4]],
+						['其他',result.drilldown[i].data[0]]
+						]}
+					}
+					console.log(series);
+					$(".admin_container").slideUp();
+					$(".admin_table").slideUp();
+					$(".select_year").slideUp();
+					$(".map3").slideDown();
+					$('.map3').highcharts({
+						chart: {
+							type: 'column'
+						},
+						title: {
+							text: '店铺销售情况'
+						},
+						subtitle: {
+							text: ''
+						},
+						xAxis: {
+							type: 'category'
+						},
+						yAxis: {
+							title: {
+								text: '销售商品数(件)'
+							}
+
+						},
+						legend: {
+							enabled: false
+						},
+						plotOptions: {
+							series: {
+								borderWidth: 0,
+								dataLabels: {
+									enabled: true,
+									format: '{point.y}件商品'
+								}
+							}
+						},
+
+						tooltip: {
+							headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+							pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y}件商品</b><br/>'
+						},
+
+						series: [{
+							name: 'Brands',
+							colorByPoint: true,
+							data: data
+						}],
+						drilldown: {
+							series: series
+
+						}
+					});
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+		}
+
+		$scope.show_gts_column = function(){
+			if (selected==7) {return;}
+			selected=7;
+			gts_sale();
+		}
+	})
+
+$(".nav_button").click(function(e){
+	e.preventDefault();
+	$('.nav_button').removeClass('active');
+	$(this).addClass('active');
+})
+
+var year = 2016;
+function right(){
+	year += 1;
+	gts_sale();
+	$("#year").html(year+'年');
+}
+function left(){
+	year -= 1;
+	gts_sale();
+	$("#year").html(year+'年');
+}
+
+function gts_sale(){
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['gts_sale']);
+	client.gts_sale(year,function (result) {
+		console.log(result);
+		$(".admin_container").slideUp();
+		$(".admin_table").slideUp();
+		$(".select_year").slideDown();
+		$(".map4").slideDown();
+		$('.map4').highcharts({
+			chart: {
+				type: 'column'
+			},
+			title: {
+				text: '各种种类销售情况'
+			},
+			subtitle: {
+				text: ''
+			},
+			xAxis: {
+				categories: [
+				'一月',
+				'二月',
+				'三月',
+				'四月',
+				'五月',
+				'六月',
+				'七月',
+				'八月',
+				'九月',
+				'十月',
+				'十一月',
+				'十二月'
+				],
+				crosshair: true
+			},
+			yAxis: {
+				min: 0,
+				title: {
+					text: '销售数量(件)'
+				}
+			},
+			tooltip: {
+				headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+				pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+				'<td style="padding:0"><b>{point.y} 件</b></td></tr>',
+				footerFormat: '</table>',
+				shared: true,
+				useHTML: true
+			},
+			plotOptions: {
+				column: {
+					pointPadding: 0.2,
+					borderWidth: 0
+				}
+			},
+			series: [{
+				name: '日常用品',
+				data: result[1]
+
+			}, {
+				name: '电子产品',
+				data: result[2]
+
+			}, {
+				name: '文化产品',
+				data: result[3]
+
+			}, {
+				name: '食品',
+				data: result[4]
+
+			},{
+				name: '其他',
+				data: result[0]
+
+			}]
+		});
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+}
+function get_goods($scope){
+	$scope.goodses = [];
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['GetGoods']);
+	client.GetGoods([page,pagesize],function (result) {
+		console.log(result);
+		$("#order_count").html(result.length);
+		for(var i=0;i<result.length;i++){
+			$scope.goodses = $scope.goodses.concat(result[i]);
+		}
+		$scope.$apply();
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+}
+function get_users($scope){
+	$scope.users = [];
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['GetUsers']);
+	client.GetUsers([page,pagesize],function (result) {
+		console.log(result);
+		for(var i=0;i<result.length;i++){
+			$scope.users = $scope.users.concat(result[i]);
+		}
+		$scope.$apply();
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+}
+function get_all_goods($scope){
+	$scope.allgoodses = [];
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['GetAllGoods']);
+	client.GetAllGoods([page,pagesize],function (result) {
+		console.log(result);
+		for(var i=0;i<result.length;i++){
+			$scope.allgoodses = $scope.allgoodses.concat(result[i]);
+		}
+		$scope.$apply();
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+}
+function init_page(){
+	page=0;
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Admin', ['UpdatePages']);
+	client.UpdatePages(pagesize,function (result) {
+		console.log(result);
+		order_page = result.goods;
+		user_page = result.user;
+		goods_page = result.allgoods;
+		if(page==order_page){
+			$('#order_right').addClass('disabled');
+		}
+		if(page==user_page){
+			$('#user_right').addClass('disabled');
+		}
+		if(page==goods_page){
+			$('#goods_right').addClass('disabled');
+		}
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+}
+function get_uvisit($scope){
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/admin', ['test']);
+		client.test({},function (result) {
+			console.log(result);
+			$scope.goodses = result.goods;
+			$scope.visits = result.vlist;
+			$scope.users = result.user;
+			$scope.$apply();
+		// console.log(result.addressComponent.city);
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+}
+</script>

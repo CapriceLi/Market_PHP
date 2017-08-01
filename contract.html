@@ -1,0 +1,127 @@
+<include file="Public/header_weixin" />
+ 
+<div id="wrapper">
+  <article class="contract_detail">
+  	<dl class="dl_list2" id="list1"></dl>
+  </article>
+</div>
+
+</body></html>
+<!--<script type="text/javascript">
+	$(function(){listmove();})
+ 	function listmove(){
+		var n=0;
+	   $(".material_list ul").each(function(index, element) { n++; });
+	   $(".material_list div").width(78*n);
+	}
+</script>
+-->
+<script type="text/javascript">
+    function DX(n) {
+        if (!/^(0|[1-9]\d*)(\.\d+)?$/.test(n))
+            return "数据非法";
+        var unit = "千百拾亿千百拾万千百拾元角分", str = "";
+        n += "00";
+        var p = n.indexOf('.');
+        if (p >= 0)
+            n = n.substring(0, p) + n.substr(p+1, 2);
+        unit = unit.substr(unit.length - n.length);
+        for (var i=0; i < n.length; i++)
+            str += '零壹贰叁肆伍陆柒捌玖'.charAt(n.charAt(i)) + unit.charAt(i);
+        return str.replace(/零(千|百|拾|角)/g, "零").replace(/(零)+/g, "零").replace(/零(万|亿|元)/g, "$1").replace(/(亿)万|壹(拾)/g, "$1$2").replace(/^元零?|零分/g, "").replace(/元$/g, "元整");
+    }
+
+
+
+    $(function() {
+        var id = {$contractid};
+
+        var jsonstr = {"sn": "", "id": id, "token": ""};
+        var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Weixin', ['getContractDetail']);
+        client.getContractDetail(JSON.stringify(jsonstr), function (result) {
+            console.info(result);
+            var res = JSON.parse(result);
+            var ctype = "";
+            if (res.contract[0].ctype == 1) {
+                ctype = "开口合同";
+            } else {
+                ctype = "闭口合同"
+            }
+            console.info(res.contract[0].contractno);
+            var add = "    	<dt>合同编号：</dt><dd>" + res.contract[0].contractno + "</dd>" +
+                    "<dt>合同类型：</dt><dd>" + ctype + "</dd><br />" +
+                    "<dt>采购方（简称甲方）：</dt><dd>" + res.contract[0].purchaser + "</dd>" +
+                    "<dt>营业地址：</dt><dd>" + res.contract[0].purchaseraddr + "&nbsp</dd>" +
+                    "<dt>供方（简称乙方）：</dt><dd>" + res.contract[0].supplier + "</dd>" +
+                    "<dt>营业地址：</dt><dd>" + res.contract[0].supplieraddr + "</dd><br /> " +
+                    "<dt class=\"title\">一、开票信息</dt><br /> " +
+                    "<dt>采购商：</dt><dd>" + res.contract[0].purchaser + "</dd>" +
+                    "<dt>开票抬头：</dt><dd>" + res.purchaser[0].title + "</dd> " +
+                    "<dt>经营地址：</dt><dd>" + res.purchaser[0].address + "</dd> " +
+                    "<dt>邮编：</dt><dd>" + res.purchaser[0].postcode + "</dd> " +
+                    "<dt>税务登记号：</dt><dd>" + res.purchaser[0].taxno + "</dd> " +
+                    "<dt>财务固定电话：</dt><dd>" + res.purchaser[0].financetel + "</dd> " +
+                    "<dt>联系人：</dt><dd>" + res.purchaser[0].linkman + "</dd> " +
+                    "<dt>开户银行：</dt><dd>" + res.purchaser[0].bank + "</dd> " +
+                    "<dt>开户行账号：</dt><dd>" + res.purchaser[0].account + "</dd><br /> " +
+                    "<dt>供应商：</dt><dd>" + res.contract[0].supplier + "</dd> " +
+                    "<dt>开票抬头：</dt><dd>" + res.supplier[0].title + "</dd> " +
+                    "<dt>经营地址：</dt><dd>" + res.supplier[0].address + "</dd> " +
+                    "<dt>邮编：</dt><dd>" + res.supplier[0].postcode + "</dd> " +
+                    "<dt>税务登记号：</dt><dd>" + res.supplier[0].taxno + "</dd> " +
+                    "<dt>财务固定电话：</dt><dd>" + res.supplier[0].financetel + "</dd> " +
+                    "<dt>联系人：</dt><dd>" + res.supplier[0].linkman + "</dd> " +
+                    "<dt>开户银行：</dt><dd>" + res.supplier[0].bank + "</dd> " +
+                    "<dt>开户行账号：</dt><dd>" + res.supplier[0].account + "</dd><br /> " +
+                    "<dt class=\"title\">二、项目概况</dt><br /> " +
+                    "<dt>1.项目名称：</dt><dd>" + res.contract[0].projectname + "</dd> " +
+                    "<dt>2.工程地点：</dt><dd>" + res.contract[0].projectnumber + "</dd> " +
+                    "<dt>3.联系人：</dt><dd>" + res.contract[0].linkman + "</dd> " +
+                    "<dt>4.联系电话：</dt><dd>" + res.contract[0].linkphone + "</dd><br /> " +
+                    "<dt class=\"title\">三、标的内容</dt><br /> " +
+                    "<div class=\"contract_bid\"> " +
+                    "<table class=\"list_table\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:836px; margin: 10px 0;\"> " +
+                    "<tr> " +
+                    "<td class='td_gray'>序号</td> " +
+                    "<td>物资名称</td> " +
+                    "<td>规格型号</td> " +
+                    "<td>参考指数</td> " +
+                    "<td>品牌</td> " +
+                    "<td>产地</td> " +
+                    "<td>单位</td> " +
+                    "<td>数量(预估)</td> " +
+                    "<td>单价(实际)</td> " +
+                    "<td>金额</td> " +
+                    "<td>备注</td> " +
+                    "</tr>";
+            var sum = 0;
+            for (var i = 0; i < res.product.length; i++) {
+                var num = i + 1;
+                add += "<tr> " +
+                "<td class='td_gray'>" + num + "</td> " +
+                "<td>" + res.product[i].productname + "</td> " +
+                "<td>" + res.product[i].model + "</td> " +
+                "<td>" + res.product[i].para + "</td> " +
+                "<td>" + res.product[i].brand + "</td> " +
+                "<td>" + res.product[i].place + "</td> " +
+                "<td>" + res.product[i].unit + "</td> " +
+                "<td>" + res.product[i].amount + "</td> " +
+                "<td>" + res.product[i].price + "</td> " +
+                "<td>" + res.product[i].sum + "</td> " +
+                "<td>" + res.product[i].remark + "</td> " +
+                "</tr>";
+                sum += parseFloat(res.product[i].sum);
+            }
+
+            add += "</table> " +
+            "</div> " +
+            "<dt>合计：</dt><dd>" + sum + "</dd> " +
+            "<dt>人民币金额（大写）：</dt><dd>"+DX(sum)+"</dd>";
+            $("#list1").html(add);
+
+        }, function (name, err) {
+            alert(err);
+            return;
+        });
+    })
+</script>

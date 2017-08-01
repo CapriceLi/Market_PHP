@@ -15,7 +15,8 @@ return array(
 //        '__PUBLICATTACHPATH__'=>__ROOT__.'/Public/Uploads',
 //        '__PUBLICALL__'=>__ROOT__.'/'.'Application'.'/Purchaser/Public',
 //        '__IMAGEPUBLIC__'=>'Public/Uploads/image',
-        '__PATHHPROSE__'=>'http://120.27.34.165/market',	//注册在kindeditor(php文件夹的upload_json.php)中也调用，如果变更需要同步修改
+        '__PATHHPROSE__'=>'/market',	//注册在kindeditor(php文件夹的upload_json.php)中也调用，如果变更需要同步修改
+        '__ROOTURL__'=>__ROOT__.'/index.php/Home',
     ),
 
     //获取页面TOKENNAME

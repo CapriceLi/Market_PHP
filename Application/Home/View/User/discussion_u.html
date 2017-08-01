@@ -1,0 +1,424 @@
+<?php
+require_once "jssdk.php";
+$jssdk = new JSSDK("wx951ac1092ad9a5bf", "4918f8fab950eddfba7e985f76a97b46");
+$signPackage = $jssdk->GetSignPackage();
+?>
+<!DOCTYPE html>
+<html>
+<include file="Public/header" />
+<body ng-app="myApp" ng-controller="DiscussionController">
+	<include file="Public/detail_head"/>
+	<a href="__ROOTURL__/Main/goodsdetail/gid/{{goods.gid}}">
+		<div class="dc_goods">
+			<div class="dc_img">
+				<img ng-src="__ROOT__{{goods.urls[0].url}}">
+			</div>
+			<div class="dc_intro">
+				<div class="dc_intro_title">{{goods.name}}</div>
+				<div class="dc_intro_price">￥{{goods.price}}</div>
+				<table>
+					<tr>
+						<td><div class="dc_intro_store">店铺:{{goods.storename}}</div></td>
+						<td><div class="dc_intro_hnum">剩余个数:{{goods.leastcount}}个</div></td>
+					</tr>
+					<td><div class="dc_intro_address">卖家地点:{{goods.provname+goods.cityname}}</div></td>
+				</table>
+			</div>
+		</div>
+	</a>
+		<div class="dc_comment" style="height: {{divheight}}px;">
+			<fieldset class="comment" style="margin-top: 35px;" id="comment">
+			</fieldset>
+			<div id="d_bottom"></div>
+		</div>
+		<footer class="audio_footer fix"><a class="audio_button"></a>
+
+			<div class="dv_anwser" style="display:block;">
+				<input class="input" ng-model="message" type="text" value="" id="answerinput" placeholder="请输入回复内容"/>
+				<a class="a_anwser" id="sendmessage1" ng-click="sendmessage()">留言</a>
+			</div>
+			<div class="dv_audio" style="display:none;">
+				<div class="dv_audio_start"><input type="button" class="audio_input" id="audio_input" value="按住说话"/></div>
+				<div class="dv_audio_end" style="display:none">
+					<input type="button" class="audio_input_try" id="audio_input_try" value="试听"/>
+					<input type="button" class="audio_input_re" value="重说"/>
+					<a class="a_anwser" id="uploadvoice">回复</a>
+				</div>
+			</div>
+		</footer>
+	</body>
+	</html>
+	<script type="text/javascript">
+		var token = $.cookie('market_usertoken');
+		var gid = {$gid};
+		var interval,i_time=10000;
+		var d_length = 0;
+		var audioid = 0;
+		getList();
+		var interval,i_time=10000;
+		function t() {
+			interval = setInterval("updateList()",i_time);				
+		 } 
+		//暂停计时
+		 function stop_t(){
+			clearInterval(interval);
+		 	//console.info("stop");
+		}	
+
+		var app = angular.module('myApp', []);
+		app.controller('DiscussionController', ['$scope', function($scope){
+			$scope.scrollHeight = window.screen.height;
+			$scope.divheight = $scope.scrollHeight - 212;
+			$scope.sendmessage = function(){
+				var jsonstr = {"type":1,"token": token,"gid":gid,"content":$scope.message};
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['SendMessage']);
+				client.SendMessage(JSON.stringify(jsonstr), function (result) { 
+					var res = JSON.parse(result);
+					console.log(res);
+					$("#answerinput").val("");
+					updateList();
+				}, function (name, err) {
+					alert(err);
+					return;
+				});
+			}
+		}]) 
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+		client.GetUser($.cookie('market_usertoken'),function (result) {
+			user = JSON.parse(result);
+			$(".main_img").attr("src","__ROOT__"+user[0].url);
+			$("#main_page>a").html("<");
+			$("#main_page>a").attr("href","__URL__/discussionlist");
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		var jsonstr = {gid:gid,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsDetail']);
+		client.GetGoodsDetail(JSON.stringify(jsonstr),function (result) {
+			// console.log(result);
+			var jsonobj = JSON.parse(result);
+			var scope = angular.element('[ng-controller=DiscussionController]').scope();
+			scope.$apply(function($scope) {
+				$scope.goods = jsonobj;
+				$(".detail_head_title").html(jsonobj.storename);
+				console.log(jsonobj);
+			});
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+
+		function audioPlay(id, e) {
+		stop_t();  //停止计时更新
+		var shapeAudio = document.getElementById("audio" + id);
+		if (!$(e).hasClass("audio_text")) {
+			$(e).addClass("audio_text");
+			shapeAudio.play();
+			var is_playFinish = setInterval(function () {
+				if (shapeAudio.ended) {
+					$(e).removeClass("audio_text");
+					window.clearInterval(is_playFinish);
+					 t();  //开始计时更新
+					}
+				}, 10);
+		}
+		else {
+			$(e).removeClass("audio_text");
+			shapeAudio.pause();
+		}
+	}
+	
+	function getList() {
+		var jsonstr = {gid:gid,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['Getdiscussion']);
+		client.Getdiscussion(JSON.stringify(jsonstr), function (result) {
+			var res = JSON.parse(result);
+			var audio = "audio";
+			var embed = "embed";
+			d_length = res.bbs.length;
+			var add = "";
+			for(var i=0;i<res.bbs.length;i++){
+				if(res.bbs[i].type == 1){
+					add += "<section>"+
+					"<section style=\"text-align: right;\">"+
+					"<section class=\"comment_detail_g\">"+
+					"<p>"+res.bbs[i].content+"</p>"+
+					"</section>"+
+					"<section class=\"comment_arrow_g\">"+
+					"<section></section>"+
+					"</section>"+
+					"<section class=\"comment_user_g\"> <img src=\"__ROOT__"+res.url+"\"/></section>"+
+					"<section class=\"comment_username_g\">"+res.uname+ " " + res.bbs[i].time +"</section>"+
+					"</section>"+
+					"<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section>"+
+					"</section>";
+				}else if(res.bbs[i].type == 3){
+					add += "<section>"+
+					"<section class=\"comment_user\"> <img src=\"__ROOT__"+res.url2+"\" /> </section>"+
+					"<section class=\"comment_username\">"+res.uname2+ " " + res.bbs[i].time +"</section>"+
+					"<section class=\"comment_arrow\">"+
+					"<section></section>"+
+					"</section>"+
+					"<section class=\"comment_detail\">"+
+					"<p>"+res.bbs[i].content+"</p>"+
+					"</section>"+
+					"</section>";
+				}else if(res.bbs[i].type == 4){
+					add += "<section>"+
+					"<section class=\"comment_user\"> <img src=\"__ROOT__"+res.url2+"\"/> </section>"+
+					"<section class=\"comment_username\">"+res.uname2+ " " + res.bbs[i].time +"</section>"+
+					"<section class=\"comment_detail_g_a\">"+
+					"<p><div style='display:none'><audio id=\"audio"+audioid+"\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\">"+
+					"<source src=\"__ROOT__"+res.bbs[i].content+"\" type=\"audio/mp3\" />"+
+					"</audio></div>"+
+					"<input class=\"audio\" id =\"qqq\" type=\"button\" onclick=\"audioPlay("+audioid+",this)\" />"+
+					"<span></span></p>"+
+					"</section>"+
+					"</section>";
+					audioid ++;
+				}else if(res.bbs[i].type == 2){
+					add +="<section>"+
+					"<section style=\"text-align: right;\">"+
+					"<section class=\"comment_detail_g_a\">"+
+					"<p>"+
+					"<div style=\"display:none\"><audio id=\"audio"+audioid+"\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\">"+
+					"<source src=\"__ROOT__"+res.bbs[i].content+"\" type=\"audio/mp3\" />"+
+					"</audio></div>"+
+					"<span></span><input class=\"audio\" type=\"button\" onclick=\"audioPlay("+audioid+",this)\" />"+
+					"</p>"+
+					"</section>"+
+					"<section class=\"comment_user_g\"> <img src=\"__ROOT__"+res.url+"\"/></section>"+
+					"<section class=\"comment_username_g\">"+res.uname+ " " + res.bbs[i].time +"</section>"+
+					"</section>"+
+					"<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section>"+
+					"</section>";
+					audioid ++;
+				}
+			}
+			$("#comment").html(add);
+			location.hash="#d_bottom";
+		}, function (name, err) {
+			console.log(err);
+			return;
+		});
+	}
+	// setTimeout("location.hash=\"#d_bottom\";console.log(1);",10000)
+	function updateList() {
+		var jsonstr = {gid:gid,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['Getdiscussion']);
+		client.Getdiscussion(JSON.stringify(jsonstr), function (result) {
+			var res = JSON.parse(result);
+			var audio = "audio";
+			var embed = "embed";
+			// var d_length = res.bbs.length;
+			var add = "";
+			for(var i=d_length;i<res.bbs.length;i++){
+				if(res.bbs[i].type == 1){
+					add += "<section>"+
+					"<section style=\"text-align: right;\">"+
+					"<section class=\"comment_detail_g\">"+
+					"<p>"+res.bbs[i].content+"</p>"+
+					"</section>"+
+					"<section class=\"comment_arrow_g\">"+
+					"<section></section>"+
+					"</section>"+
+					"<section class=\"comment_user_g\"> <img src=\"__ROOT__"+res.url+"\"/></section>"+
+					"<section class=\"comment_username_g\">"+res.uname+ " " + res.bbs[i].time +"</section>"+
+					"</section>"+
+					"<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section>"+
+					"</section>";
+				}else if(res.bbs[i].type == 3){
+					add += "<section>"+
+					"<section class=\"comment_user\"> <img src=\"__ROOT__"+res.url2+"\" /> </section>"+
+					"<section class=\"comment_username\">"+res.uname2+ " " + res.bbs[i].time +"</section>"+
+					"<section class=\"comment_arrow\">"+
+					"<section></section>"+
+					"</section>"+
+					"<section class=\"comment_detail\">"+
+					"<p>"+res.bbs[i].content+"</p>"+
+					"</section>"+
+					"</section>";
+				}else if(res.bbs[i].type == 4){
+					add += "<section>"+
+					"<section class=\"comment_user\"> <img src=\"__ROOT__"+res.url2+"\"/> </section>"+
+					"<section class=\"comment_username\">"+res.uname2+ " " + res.bbs[i].time +"</section>"+
+					"<section class=\"comment_detail_g_a\">"+
+					"<p><div style='display:none'><audio id=\"audio"+audioid+"\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\">"+
+					"<source src=\"__ROOT__"+res.bbs[i].content+"\" type=\"audio/mp3\" />"+
+					"</audio></div>"+
+					"<input class=\"audio\" id =\"qqq\" type=\"button\" onclick=\"audioPlay("+audioid+",this)\" />"+
+					"<span></span></p>"+
+					"</section>"+
+					"</section>";
+					audioid ++;
+				}else if(res.bbs[i].type == 2){
+					add +="<section>"+
+					"<section style=\"text-align: right;\">"+
+					"<section class=\"comment_detail_g_a\">"+
+					"<p>"+
+					"<div style=\"display:none\"><audio id=\"audio"+audioid+"\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\">"+
+					"<source src=\"__ROOT__"+res.bbs[i].content+"\" type=\"audio/mp3\" />"+
+					"</audio></div>"+
+					"<span></span><input class=\"audio\" type=\"button\" onclick=\"audioPlay("+audioid+",this)\" />"+
+					"</p>"+
+					"</section>"+
+					"<section class=\"comment_user_g\"> <img src=\"__ROOT__"+res.url+"\"/></section>"+
+					"<section class=\"comment_username_g\">"+res.uname+ " " + res.bbs[i].time +"</section>"+
+					"</section>"+
+					"<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section>"+
+					"</section>";
+					audioid ++;
+				}
+			}
+			d_length = res.bbs.length;
+			$("#comment").append(add);
+			location.hash="#d_bottom";
+		}, function (name, err) {
+			console.log(err);
+			return;
+		});
+	}
+
+	$(function () { 
+		t();
+		tx = setTimeout("stop_t();i_time=30000;t();",180000);
+        //切换留言&录音
+        $(".audio_button").click(function (e) {
+        	$(this).toggleClass("audio_button_text");
+        	$(".dv_anwser").toggle();
+        	$(".dv_audio").toggle();
+        });
+		//重录
+		$(".audio_input_re").click(function (){
+			$(".dv_audio_start").toggle();$(".dv_audio_end").toggle();
+		})
+		$("#audio_input_try").click(function () {
+			if (voice.localId == '') {
+				alert('请先使用 startRecord 接口录制一段声音');
+				return;
+			}
+			wx.playVoice({
+				localId: voice.localId
+			});
+		});
+		var audioflag = false;
+		var obj = document.getElementsByClassName('audio_input');
+		for (var i = 0; i < obj.length; i++) {
+			obj[i].addEventListener('touchstart', function(event) {
+				var i = 0;
+				var _this = $(this);
+				timer = setInterval(function(){
+					i+=10;
+					if(i >= 60000){
+						i = 0;
+						lognPress();
+					} else {
+						if(!audioflag) {
+							wx.startRecord({
+								cancel: function () {
+									alert('用户拒绝授权录音');
+								}
+							});
+						}
+						audioflag = true;
+						console.info(0);
+					}
+				},10)
+
+			});
+			obj[i].addEventListener('touchend', function(event) {
+				audioflag = false;
+				wx.stopRecord({
+					success: function (res) {
+						voice.localId = res.localId;
+					},
+					fail: function (res) {
+						alert(JSON.stringify(res));
+					}
+				});
+				clearTimeout(timer);
+				$(".dv_audio_start").toggle();$(".dv_audio_end").toggle();
+			}, false);
+		}
+		//上传
+        $("#uploadvoice").click(function () {
+        	wx.uploadVoice({
+        		localId: voice.localId,
+        		success: function (res) {
+        			voice.serverId = res.serverId;
+
+        			var jsonstr = {"token": token,"serverid":res.serverId,"type":2,"gid":gid};
+        			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['SendMessage']);
+        			client.SendMessage(JSON.stringify(jsonstr), function (result) {
+        				console.log(result);
+        				updateList();
+        			}, function (name, err) {
+        				alert(err);
+        				return;
+        			});
+        			updateList();
+
+        		}
+        	});
+        })
+	})
+	wx.config({
+		debug: false,
+		appId: '<?php echo $signPackage["appId"];?>',
+		timestamp: '<?php echo $signPackage["timestamp"];?>',
+		nonceStr: '<?php echo $signPackage["nonceStr"];?>',
+		signature: '<?php echo $signPackage["signature"];?>',
+		jsApiList: [
+		'startRecord',
+		'stopRecord',
+		'onRecordEnd',
+		'playVoice',
+		'pauseVoice',
+		'stopVoice',
+		'uploadVoice',
+		'downloadVoice'
+		]
+	});
+
+	var voice = {
+		localId: '',
+		serverId: ''
+	};
+	$("#audio_input").click(function () {
+		$(".dv_audio_start").toggle();
+		$(".dv_audio_end").toggle();
+		wx.startRecord({
+			cancel: function () {
+				alert('用户拒绝授权录音');
+			}
+		});
+	});
+
+	$(".audio_input_re").click(function () {
+
+		wx.stopRecord({
+			success: function (res) {
+				voice.localId = res.localId;
+			},
+			fail: function (res) {
+				alert(JSON.stringify(res));
+			}
+		});
+
+	});
+        //监听录音自动停止
+        wx.ready(function () {
+        //监听录音自动停止
+        wx.onVoiceRecordEnd({
+        	complete: function (res) {
+        		voice.localId = res.localId;
+        		alert('录音时间已超过一分钟');
+        		$(".dv_audio_start").toggle();
+        		$(".dv_audio_end").toggle();
+        	}
+        });
+    })
+
+
+</script>

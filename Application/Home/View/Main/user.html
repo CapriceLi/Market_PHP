@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<body>
+	<include file="Public/main_head" />
+	<a href="{:U('Home/User/manageuser')}"><div class="user_top">
+		<div class="user_top_background">
+			<img>
+		</div>
+			<img onclick="uploadpicture()" src="__ROOT__/Public/images/no_avatar.jpg" class="img-circle personal_user_img">
+			<button id="uploadpic" class="btn" style="margin-left: 10px;display: none">上传</button>
+			<span></span>
+		</div></a>
+		<div class="user_main">
+			<ul>
+				<a href="{:U('Home/User/userstore')}"><li><img src="__ROOT__/Public/images/managestore.png">我的店铺<span>></span></li></a>
+				<a href="{:U('Home/User/manageuser')}"><li><img src="__ROOT__/Public/images/manageuser.png">个人资料<span>></span></li></a>
+				<a href="{:U('Home/User/usersafety')}"><li><img src="__ROOT__/Public/images/usersafety.png">账户与安全<span>></span></li></a>
+				<a href="{:U('Home/User/myorder')}"><li><img src="__ROOT__/Public/images/myorder.png">需要我处理的订单<span>></span><span class="o_alert">12</span></li></a>
+				<a id="logout"><li style="margin-top: 10px;"><img src="__ROOT__/Public/images/logout.png">登出账号<span>></span></li></a>
+			</ul>
+		</div>
+
+
+
+	</body>
+
+	<script type="text/javascript">
+		$("#logout").click(function(){
+			var mymessage = confirm("你确认要解除微信绑定吗？");
+			if (mymessage==true)
+			{
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['UnBind']);
+				client.UnBind($.cookie('market_usertoken'),function (result) {
+					if(result == 1){
+						// var strurl = "{:U('Home/Index/login')}";
+						var strurl = "http://open.weixin.qq.com/connect/oauth2/authorize?appid=wx951ac1092ad9a5bf&redirect_uri=http://www.jasper-website.site/market/oauth2.php&response_type=code&scope=snsapi_base&state=STATE";
+						$.cookie('market_usertoken', "",{ expires: -1,path: '/'}); 
+						$.cookie('market_uid',"",{ expires: -1,path: '/'}); 
+						document.location=strurl;
+					}else{
+						alert("解绑失败");
+					}
+
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+			}
+		})
+		$("#user_page").attr("class","active");
+		$(".pic3 img").attr("src","__ROOT__/Public/images/user2.png");
+		$("#user_page>a").attr("href","#");
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+		client.GetUser($.cookie('market_usertoken'),function (result) {
+			var user = JSON.parse(result);
+			// console.log(user);
+			$(".main_img,.personal_user_img,.user_top_background>img").attr("src","__ROOT__"+user[0].url);
+			$(".user_top>span").html(user[0].uname);
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetUnconfirmCount']);
+		client.GetUnconfirmCount($.cookie('market_usertoken'),function (result) {
+			// console.log(result);
+			if(result.num != '0'){
+				$(".o_alert").show();		
+				$(".o_alert").html(result.num);
+			}
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	</script>
+	</html>

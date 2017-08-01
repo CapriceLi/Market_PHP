@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<include file="Public/header" />
+	<link href="__ROOT__/Public/css/scrollbar.css" rel="stylesheet">
+	<title>店铺管理</title>
+</head>
+<body ng-app="myApp" ng-controller="UserStoreController">
+	<include file="Public/detail_head" />
+
+	<div class="us_main">
+			<ul>
+				<li><img src="__ROOT__/Public/images/store.png">店铺名:<input id="storename" ng-model="user.storename"/></li>
+				<li>店铺简介:<textarea ng-change="textchange()" id="storedescribe" ng-model="user.storedescribe" style="height: 89px;width: 95%;margin-top: 10px;"></textarea><span class="words">{{words}}/36个字</span></li>
+				<a href="{:U('Home/User/managegoodslist')}"><li>修改商品<span>></span></li></a>
+				<a href="{:U('Home/User/creategoods')}"><li>添加商品<span>></span></li></a>
+			</ul>
+	</div>
+	<div class="us_submit"  style="display: none;">
+	<div class="submit" ng-click="submit()">提交</div>
+	</div>
+</body>
+<script type="text/javascript">
+	$("#main_page>a").html("<");
+	$(".detail_head_title").html("我的店铺");
+	$("#main_page>a").attr("href","{:U('Home/Main/user')}");
+	$("#storename,#storedescribe").focus(function(){
+		$(".us_submit").show();
+	})
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+	client.GetUser($.cookie('market_usertoken'),function (result) {
+		user = JSON.parse(result);
+		$(".main_img").attr("src","__ROOT__"+user[0].url);
+		// $(".detail_head_title").html(user[0].storename);
+		var scope = angular.element('[ng-controller=UserStoreController]').scope();
+		scope.$apply(function($scope) {
+			$scope.user = user[0];
+			$scope.words = $scope.user.storedescribe.length
+		})
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	var app = angular.module('myApp', []);
+	app.controller('UserStoreController', function($scope) {
+		$scope.words = 0;
+		$scope.textchange = function(){
+			$scope.words = $scope.user.storedescribe.length;
+		}
+		$scope.submit = function(){
+				if($scope.user.storedescribe.length > 36){
+					alert("请输入小于36个文字!!");
+					return;
+				}
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['ManageUser']);
+				client.ManageUser(JSON.stringify($scope.user),function (result) {
+					console.log(result);
+					if(result == 1){
+						window.location.reload();
+					}
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+	}
+})
+</script>
+</html>

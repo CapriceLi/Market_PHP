@@ -1,0 +1,490 @@
+<?php
+require_once "jssdk.php";
+$jssdk = new JSSDK("wx951ac1092ad9a5bf", "4918f8fab950eddfba7e985f76a97b46");
+$signPackage = $jssdk->GetSignPackage();
+?>
+
+<include file="Public/header_weixin"/>
+
+<div id="wrapper" style="background:#f5f5f5;">
+<p style="text-align:center; background: #eaeaea; line-height: 28px; font-size:14px;">报价详情</p>
+ <div class="material_list2">
+        <div id="list">
+            <ul>
+                <li>物资名称</li>
+                <li>型号</li>
+                <li>数量</li>
+                <li>单位</li>
+                <li>品牌</li>
+                <li>产地</li>
+            </ul>
+        </div>
+    </div>
+    <fieldset class="comment" style="margin-top: 35px;" id="comment">
+    </fieldset>
+    <footer class="audio_footer fix"><a class="audio_button"></a>
+
+        <div class="dv_anwser" style="display:block;">
+            <input class="input" type="text" value="" id="answerinput" placeholder="请输入回复内容"/>
+            <a class="a_anwser" id="anwser1">留言</a>
+        </div>
+        <div class="dv_audio" style="display:none;">
+            <div class="dv_audio_start"><input type="button" class="audio_input" id="audio_input" value="按住说话"/></div>
+            <div class="dv_audio_end" style="display:none">
+                <input type="button" class="audio_input_try" id="audio_input_try" value="试听"/>
+                <input type="button" class="audio_input_re" value="重说"/>
+                <a class="a_anwser" id="uploadvoice">回复</a>
+            </div>
+        </div>
+    </footer>
+</div>
+
+</body></html>
+<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+<script type="text/javascript">
+	var bidid = '{$bidid}';
+    var tenderid = '{$tenderid}';
+    var token = '{$tokenstr}';
+	var interval,i_time=10000;
+	var tx; 
+	//开始计时
+	 function t() {
+		interval = setInterval("updateList()",i_time);				
+	 } 
+	//暂停计时
+	 function stop_t(){
+		 clearInterval(interval);
+		 //console.info("stop");
+	 }	
+    //播放音频
+    function audioPlay(id, e) {
+		stop_t();  //停止计时更新
+        var shapeAudio = document.getElementById("audio" + id);
+        if (!$(e).hasClass("audio_text")) {
+             $(e).addClass("audio_text");
+             shapeAudio.play();
+             var is_playFinish = setInterval(function () {
+                 if (shapeAudio.ended) {
+                     $(e).removeClass("audio_text");
+                     window.clearInterval(is_playFinish);
+					 t();  //开始计时更新
+                 }
+             }, 10);
+        }
+        else {
+             $(e).removeClass("audio_text");
+             shapeAudio.pause();
+        }
+    }
+	$(function () { 
+		t();
+		tx = setTimeout("stop_t();i_time=30000;t();",180000);
+        //切换留言&录音
+        $(".audio_button").click(function (e) {
+            $(this).toggleClass("audio_button_text");
+            $(".dv_anwser").toggle();
+            $(".dv_audio").toggle();
+        });
+		//重录
+        $(".audio_input_re").click(function (){
+            $(".dv_audio_start").toggle();$(".dv_audio_end").toggle();
+        })
+		//留言
+        $('#anwser1').click(function(e){ 
+            var date = new Date();
+            var hash = hex_md5(date.format("yyyy-MM-dd"));
+            var content = $("#answerinput").val();
+            var jsonstr = {"sn": hash, "token": token, "bid": bidid, "tid": tenderid,"content":content};
+            var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Weixin', ['sendBbs']);
+            client.sendBbs(JSON.stringify(jsonstr), function (result) { 
+                updateList();
+            }, function (name, err) {
+                alert(err);
+                return;
+            });
+            $("#answerinput").val(""); 
+        })
+		//试听
+		 $("#audio_input_try").click(function () {
+            if (voice.localId == '') {
+                alert('请先使用 startRecord 接口录制一段声音');
+                return;
+            }
+            wx.playVoice({
+                localId: voice.localId
+            });
+        });
+		//上传
+        $("#uploadvoice").click(function () {
+            wx.uploadVoice({
+                localId: voice.localId,
+                success: function (res) {
+                    voice.serverId = res.serverId;
+
+                    var jsonstr = {"token": token, "bid": bidid, "tid": 0,"serverid":res.serverId,"type":
+                            1};
+                    var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Weixin', ['downloadVoice']);
+                    client.downloadVoice(JSON.stringify(jsonstr), function (result) {
+                    }, function (name, err) {
+                        alert(err);
+                        return;
+                    });
+                    updateList();
+
+                }
+            });
+        })
+        //录音
+        var audioflag = false;
+        var obj = document.getElementsByClassName('audio_input');
+        for (var i = 0; i < obj.length; i++) {
+            obj[i].addEventListener('touchstart', function(event) {
+                var i = 0;
+                var _this = $(this);
+                timer = setInterval(function(){
+                    i+=10;
+                    if(i >= 60000){
+                        i = 0;
+                        lognPress();
+                    } else {
+                        if(!audioflag) {
+                            wx.startRecord({
+                                cancel: function () {
+                                    alert('用户拒绝授权录音');
+                                }
+                            });
+                        }
+                        audioflag = true;
+                        console.info(0);
+                    }
+                },10)
+
+            });
+            obj[i].addEventListener('touchend', function(event) {
+                audioflag = false;
+                wx.stopRecord({
+                    success: function (res) {
+                        voice.localId = res.localId;
+                    },
+                    fail: function (res) {
+                        alert(JSON.stringify(res));
+                    }
+                });
+                clearTimeout(timer);
+                $(".dv_audio_start").toggle();$(".dv_audio_end").toggle();
+            }, false);
+        }
+    })
+
+    function lognPress() {$(".dv_audio_start").toggle();$(".dv_audio_end").toggle();}
+
+    wx.config({
+        debug: false,
+        appId: '<?php echo $signPackage["appId"];?>',
+        timestamp: '<?php echo $signPackage["timestamp"];?>',
+        nonceStr: '<?php echo $signPackage["nonceStr"];?>',
+        signature: '<?php echo $signPackage["signature"];?>',
+        jsApiList: [
+            'startRecord',
+            'stopRecord',
+            'onRecordEnd',
+            'playVoice',
+            'pauseVoice',
+            'stopVoice',
+            'uploadVoice',
+            'downloadVoice'
+        ]
+    });
+
+        var voice = {
+            localId: '',
+            serverId: ''
+        };
+        $("#audio_input").click(function () {
+            $(".dv_audio_start").toggle();
+            $(".dv_audio_end").toggle();
+            wx.startRecord({
+                cancel: function () {
+                    alert('用户拒绝授权录音');
+                }
+            });
+        });
+
+        $(".audio_input_re").click(function () {
+
+            wx.stopRecord({
+                success: function (res) {
+                    voice.localId = res.localId;
+                },
+                fail: function (res) {
+                    alert(JSON.stringify(res));
+                }
+            });
+
+        });
+        //监听录音自动停止
+    wx.ready(function () {
+        //监听录音自动停止
+        wx.onVoiceRecordEnd({
+            complete: function (res) {
+                voice.localId = res.localId;
+                alert('录音时间已超过一分钟');
+                $(".dv_audio_start").toggle();
+                $(".dv_audio_end").toggle();
+            }
+        });
+    })
+
+       
+    //获取音轨长度
+    function getDuration() {
+        /*$("audio").each(function(index, element) {
+         $(this).siblings("span").html($(this)[0].duration.toString().substr(0,5)+"s");
+         })*/
+        ;
+    }
+     
+	 function listmove(){
+		var n=0;
+	   $(".material_list2 ul").each(function(index, element) { n++; });
+	   $(".material_list2 div").width(78*n);
+	  }
+  
+    var comment_old = "";
+    var updatetime = 0;
+    var mediaid = 0;
+    var date = new Date();
+    getList();
+    getConfirmBid();
+
+    function getConfirmBid(){
+        var date = new Date();
+        var hash = hex_md5(date.format("yyyy-MM-dd"));
+        var jsonstr = {"sn": hash, "token": token, "bid": bidid, "tid": tenderid};
+        var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Weixin', ['confirmBid']);
+        client.confirmBid(JSON.stringify(jsonstr), function (result) {console.info(result);
+            var res=JSON.parse(result);
+            
+            var add = "<ul>"+
+                    "<li>物资名称</li>"+
+                    "<li>型号</li>"+
+                    "<li>单位</li>"+
+                    "<li>数量</li>";
+            if(res.quotetype == 1) add+="<li>固定报价</li>";
+            else if(res.quotetype == 2) add+="<li>浮动报价</li>";
+                    add += "<li>备注</li>"+
+                    "</ul>";
+					if(typeof(res.supplier[0])!="undefinded"){
+						for(var i=0;i<res.supplier[0].product.length;i++){
+							if(res.supplier[0].product[i].name == "") res.supplier[0].product[i].name="无";
+							if(res.supplier[0].product[i].model == "") res.supplier[0].product[i].model="无";
+							if(res.supplier[0].product[i].amount == "") res.supplier[0].product[i].amount="无";
+							if(res.supplier[0].product[i].price == "") res.supplier[0].product[i].price="无";
+							if(res.supplier[0].product[i].remark == "") res.supplier[0].product[i].remark="无";
+							if(res.supplier[0].product[i].unit == "") res.supplier[0].product[i].unit="无";
+							add += "<ul>" +
+								"<li>"+res.supplier[0].product[i].name+"</li>" +
+								"<li>"+res.supplier[0].product[i].model+"</li>" +
+								"<li>"+res.supplier[0].product[i].unit+"</li>" +
+								"<li>"+res.supplier[0].product[i].amount+"</li>" +
+								"<li>"+res.quotedesc+res.supplier[0].product[i].price+"</li>" +
+								"<li>"+res.supplier[0].product[i].remark+"</li>" +
+								"</ul>";
+						}
+					}
+            $('#list').html(add);
+			listmove();
+
+
+        }, function (name, err) {
+            alert(err);
+            return;
+        });
+    }
+    function getList() {
+        var hash = hex_md5(date.format("yyyy-MM-dd"));
+        var jsonstr = {"sn": hash, "token": token, "bid": bidid, "tid": tenderid};
+        var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Weixin', ['bbs']);
+        client.bbs(JSON.stringify(jsonstr), function (result) { 
+            var res = JSON.parse(result);
+            comment_old = res.res[0].bbs;            
+            var suppliername = "供应商";// res.res[0].suppliername;
+            var purchasername = "采购商"; // res.res[0].purchasername;
+            var supplierlogo = res.res[0].supplierlogo;
+            var purchaserlogo = res.res[0].purchaserlogo;
+            var audio = "audio";
+            var embed = "embed";
+            var add1 = "";
+            //console.info(res.res[0].bbs.length,suppliername,purchasername,supplierlogo,purchaserlogo);
+			
+            for (var i = 0; i < res.res[0].bbs.length; i++) {
+                if (res.res[0].bbs[i].type == 2) {
+                    add1 += " <section> " +
+                    "<section class=\"comment_user\"> <img src=\"" + purchaserlogo + "\" /> </section> " +
+                    "<section class=\"comment_username\"> " + purchasername + " " + res.res[0].bbs[i].time + "</section> " +
+                    "<section class=\"comment_arrow\"> " +
+                    "<section></section> " +
+                    "</section> " +
+                    "<section class=\"comment_detail\"> " +
+                    "<p>" + res.res[0].bbs[i].content + "</p> " +
+                    "</section> " +
+                    "</section>";
+                } else if (res.res[0].bbs[i].type == 4) {
+                    audio = "audio" + mediaid;
+                    embed = "embed" + mediaid;
+
+                    add1 += " <section> " +
+                    "<section class=\"comment_user\"> <img src=\"" + purchaserlogo + "\" /> </section> " +
+                    "<section class=\"comment_username\"> " + purchasername + " " + res.res[0].bbs[i].time + "</section> " +
+
+                    "<section class=\"comment_detail_g_a\"> " +
+                    "<p>  " +
+                    "<div style='display:none'><audio id=\"" + audio + "\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\"> " +
+                    "<source src=\"__ROOT__" + res.res[0].bbs[i].content + "\" type=\"audio/mp3\" /> " +
+                        /* "<embed id=\""+embed+"\" src=\"__ROOT__"+res.res[0].bbs[i].content+"\" width=\"100\" height=\"43\" autostart=\"false\"  hidden=\"true\" /> " +*/
+                    "</audio></div> " +
+                    "<input class=\"audio\" id =\"qqq\" type=\"button\" onclick=\"audioPlay('" + mediaid + "',this)\" /> " +
+                    "<span></span></p>" +
+                    "</section> " +
+                    "</section>";
+                    mediaid++;
+                } else if (res.res[0].bbs[i].type == 1) {
+                    add1 += "<section> " +
+                    "<section style=\"text-align: right;\"> " +
+                    "<section class=\"comment_detail_g\"> " +
+                    "<p>" + res.res[0].bbs[i].content + "</p> " +
+                    "</section> " +
+                    "<section  class=\"comment_arrow_g\"> " +
+                    "<section></section> " +
+                    "</section> " +
+                    "<section class=\"comment_user_g\"> <img src=\"" + supplierlogo + "\"/></section> " +
+                    "<section class=\"comment_username_g\">" + suppliername + " " + res.res[0].bbs[i].time + "</section> " +
+                    "</section> " +
+                    "<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section> " +
+                    "</section>";
+                } else if (res.res[0].bbs[i].type == 3) {
+                    audio = "audio" + mediaid;
+                    embed = "embed" + mediaid;
+
+                    add1 += "<section> " +
+                    "<section style=\"text-align: right;\"> " +
+                    "<section class=\"comment_detail_g_a\"> " +
+                    "<p>  " +
+                    "<div style='display:none'><audio id=\"" + audio + "\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\"> " +
+                    "<source src=\"__ROOT__" + res.res[0].bbs[i].content + "\" type=\"audio/mp3\" /> " +
+                        /*"<embed id=\""+embed+"\" src=\"__ROOT__"+res.res[0].bbs[i].content+"\" width=\"100\" height=\"43\" autostart=\"false\"  hidden=\"true\" /> " +*/
+                    "</audio></div> " +
+                    "<span></span><input class=\"audio\" type=\"button\" onclick=\"audioPlay('" + mediaid + "',this)\" /> " +
+                    "</p>" +
+                    "</section> " +
+                    "<section class=\"comment_user_g\"> <img src=\"" + supplierlogo + "\"/></section> " +
+                    "<section class=\"comment_username_g\">" + suppliername + " " + res.res[0].bbs[i].time + "</section> " +
+                    "</section> " +
+                    "<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section> " +
+                    "</section>";
+                    mediaid++;
+                }
+
+                $("#comment").html(add1);
+                getDuration();
+            }
+        }, function (name, err) {
+            alert(err);
+            return;
+        });
+    }
+
+    function updateList() {
+        var date = new Date();
+        var hash = hex_md5(date.format("yyyy-MM-dd"));
+        var jsonstr = {"sn": hash, "token": token, "bid": bidid, "tid": tenderid};
+        var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Weixin', ['bbs']);
+        client.bbs(JSON.stringify(jsonstr), function (result) {
+            //console.info(result);
+            var res = JSON.parse(result);
+            var suppliername = "供应商";// res.res[0].suppliername;
+            var purchasername = "采购商"; // res.res[0].purchasername;
+            var supplierlogo = res.res[0].supplierlogo;
+            var purchaserlogo = res.res[0].purchaserlogo;
+            var audio = "audio";
+            var embed = "embed";
+
+            var add2 = "";
+			
+            if (typeof(res.res[0].bbs.length)=="number" && res.res[0].bbs.length > comment_old.length) {
+                for (var i = comment_old.length; i < res.res[0].bbs.length; i++) {
+                    if (res.res[0].bbs[i].type == 2) {
+                        add2 += " <section> " +
+                        "<section class=\"comment_user\"> <img src=\"" + purchaserlogo + "\" /> </section> " +
+                        "<section class=\"comment_username\"> " + purchasername + " " + res.res[0].bbs[i].time + "</section> " +
+                        "<section class=\"comment_arrow\"> " +
+                        "<section></section> " +
+                        "</section> " +
+                        "<section class=\"comment_detail\"> " +
+                        "<p>" + res.res[0].bbs[i].content + "</p> " +
+                        "</section> " +
+                        "</section>";
+                    } else if (res.res[0].bbs[i].type == 4) {
+                        audio = "audio" + mediaid;
+                        embed = "embed" + mediaid;
+                        add2 += " <section> " +
+                        "<section class=\"comment_user\"> <img src=\"" + purchaserlogo + "\" /> </section> " +
+                        "<section class=\"comment_username\"> " + purchasername + " " + res.res[0].bbs[i].time + "</section> " +
+                        "<section class=\"comment_detail_g_a\"> " +
+                        "<p>  " +
+                        "<div style='display:none'><audio id=\"" + audio + "\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\"> " +
+                        "<source src=\"__ROOT__" + res.res[0].bbs[i].content + "\" type=\"audio/mp3\" /> " +
+                            /*"<embed id=\""+embed+"\" src=\"__ROOT__"+res.res[0].bbs[i].content+"\" width=\"100\" height=\"43\" autostart=\"false\"  hidden=\"true\" /> " +*/
+                        "</audio></div> " +
+                        "<input class=\"audio\" type=\"button\" onclick=\"audioPlay('" + mediaid + "',this)\" /> " +
+                        "<span></span></p>" +
+                        "</section> " +
+                        "</section>";
+                        mediaid++;
+                    } else if (res.res[0].bbs[i].type == 1) {
+                        add2 += "<section> " +
+                        "<section style=\"text-align: right;\"> " +
+                        "<section class=\"comment_detail_g\"> " +
+                        "<p>" + res.res[0].bbs[i].content + "</p> " +
+                        "</section> " +
+                        "<section  class=\"comment_arrow_g\"> " +
+                        "<section></section> " +
+                        "</section> " +
+                        "<section class=\"comment_user_g\"> <img src=\"" + supplierlogo + "\"/></section> " +
+                        "<section class=\"comment_username_g\">" + suppliername + " " + res.res[0].bbs[i].time + "</section> " +
+                        "</section> " +
+                        "<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section> " +
+                        "</section>";
+                    } else if (res.res[0].bbs[i].type == 3) {
+                        audio = "audio" + mediaid;
+                        embed = "embed" + mediaid;
+
+                        add2 += "<section> " +
+                        "<section style=\"text-align: right;\"> " +
+                        "<section class=\"comment_detail_g_a\"> " +
+                        "<p>  " +
+                        "<div style='display:none'><audio id=\"" + audio + "\" controls=\"controls\" hidden=\"true\" width=\"100\" height=\"43\"> " +
+                        "<source src=\"__ROOT__" + res.res[0].bbs[i].content + "\" type=\"audio/mp3\" /> " +
+                            /*"<embed id=\""+embed+"\" src=\"__ROOT__"+res.res[0].bbs[i].content+"\" width=\"100\" height=\"43\" autostart=\"false\"  hidden=\"true\" /> " +*/
+                        "</audio></div> " +
+                        "<span></span><input class=\"audio\" type=\"button\" onclick=\"audioPlay('" + mediaid + "',this)\" /> " +
+                        "</p>" +
+                        "</section> " +
+                        "<section class=\"comment_user_g\"> <img src=\"" + supplierlogo + "\"/></section> " +
+                        "<section class=\"comment_username_g\">" + suppliername + " " + res.res[0].bbs[i].time + "</section> " +
+                        "</section> " +
+                        "<section data-width=\"0px\" style=\"display: block; width: 0; height: 0; clear: both;\"></section> " +
+                        "</section>";
+                        mediaid++;
+                    }
+                    $("#comment").append(add2);
+                    getDuration();
+                    comment_old = res.res[0].bbs;
+                }
+            }
+        }, function (name, err) {
+            alert(err);
+            return;
+        });
+    }
+</script>

@@ -1,0 +1,213 @@
+<?php
+require_once "jssdk.php";
+$jssdk = new JSSDK("wx951ac1092ad9a5bf", "4918f8fab950eddfba7e985f76a97b46");
+$signPackage = $jssdk->GetSignPackage();
+?>
+<!DOCTYPE html>
+<html>
+<include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollimg.css" rel="stylesheet">
+<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+<title>商品详情页</title>
+<body ng-app="myApp" ng-controller="BuyGoodsController">
+	<include file="Public/detail_head"/>
+	<div class="bg_main">
+		<ul>
+			<li class="bg_address">
+				交易地址:
+				<select ng-change="SelectPorvince()" class="bg_province" ng-model="user.provid" ng-options="item.provid as item.provname for item in province"></select>
+				<select class="bg_city" ng-model="user.cityid" ng-options="item.cityid as item.cityname for item in citys"></select><br>
+				详细地址:<input class="bg_address_d" ng-model="order.address"/><div class="location" style="float: right;" ng-click="LocatPlace()"><img src="__ROOT__/Public/images/locate_icon.png"></div><br>
+				交易时间:<input type="datetime-local"  class="bg_trad_date" ng-model="order.tradetime">
+				<div style="margin-top: 5px;">收货人: {{user.realname}}</div>
+				<div style="margin-top: 18px;">联系电话: {{user.uphone}}</div>
+			</li>
+			<li class="bg_goods">
+				<!-- <a class="bg_a" ng-href="__URL__/goodsdetail/gid/{{goods.gid}}"></a> -->
+				<div class="bg_img">
+					<img ng-src="__ROOT__{{goods.urls[0].url}}">
+				</div>
+				<div class="bg_intro">
+					<div class="bg_intro_title">{{goods.name}}</div>
+					<div class="bg_intro_price">￥{{goods.price}}</div>
+					<div class="bg_intro_store">店铺:{{goods.storename}}</div>
+					<div class="bg_intro_hnum">剩余个数:{{goods.leastcount}}个</div>
+				</div>
+				<div class="bg_intro_num">
+					<button ng-click="minus()" ng-disabled="minus_disable">-</button>
+					<input class="num" disabled ng-model="order.count"/>
+					<button ng-click="plus()" ng-disabled="plus_disable">+</button>
+				</div>
+			</li>
+			<li>
+				<div class="bg_comment">
+					<div style="padding:5px 0 0 10px;">备注：</div>
+					<textarea class="comment" ng-model="order.comment"></textarea>
+				</div>
+			</li>
+			<!-- <div style="height: 74px;"></div> -->
+			<li>
+				<div class="bg_buy">
+					<div class="bg_buy_price">合计:￥ {{order.price}}</div>
+					<div class="bg_buy_buy" ng-click="BuyGoods()">立即下单</div>
+				</div>
+			</li>
+		</ul>
+	</div>
+</body>
+</html>
+
+<script type="text/javascript">
+	var app = angular.module('myApp', []);
+	app.controller('BuyGoodsController', ['$scope', function($scope){
+		$scope.order = {gid:gid,token:token,comment:"",address:"",tradetime:new Date()};
+		$scope.minus = function(){
+			$scope.order.count --;
+			$scope.plus_disable = false;
+			if($scope.order.count == $scope.goods.leastcount){
+				$scope.minus_disable = true;
+			}else{
+				$scope.minus_disable = false;
+			}
+			$scope.order.price = $scope.order.count * $scope.goods.price;
+		}
+		$scope.plus = function(){
+			$scope.order.count ++;
+			if($scope.order.count == $scope.goods.count){
+				$scope.plus_disable = true;
+			}
+			$scope.minus_disable = false;
+			$scope.order.price = $scope.order.count * $scope.goods.price;
+		}
+		var citys = {};
+		$scope.SelectPorvince = function(){
+				// console.log($scope.user.provid);
+				// console.log(all_citys);
+				$scope.citys = [];
+				for(var i=0;i<all_citys.length;i++){
+					if(all_citys[i].provid==$scope.user.provid)
+						$scope.citys.push(all_citys[i]);
+				}
+				$scope.user.cityid = $scope.citys[0].cityid;
+			}
+			$scope.BuyGoods = function(){
+				if($scope.order.address == ""){
+					$(".bg_address_d").focus();
+					return;
+				}
+				$scope.order.provid = $scope.user.provid;
+				$scope.order.cityid = $scope.user.cityid;
+				$scope.order.sale_type = $scope.goods.sale_type;
+				// console.log($scope.order);
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['BuyGoods']);
+				client.BuyGoods(JSON.stringify($scope.order),function (result) {
+					console.log(result);
+					var jsonobj = JSON.parse(result);
+					if(jsonobj.info == "success"){
+						var strurl = "__URL__/successbuy/ooid/"+jsonobj.ooid;
+					}else{
+						var strurl = "__URL__/failsbuy";
+					}
+					document.location=strurl;
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+			}
+			$scope.LocatPlace = function(){
+				wx.getLocation({
+					success: function (res) {
+        				var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+       					var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+        				var speed = res.speed; // 速度，以米/每秒计
+        				var accuracy = res.accuracy; // 位置精度
+        				var jsonstr = {latitude:latitude,longitude: longitude};
+        				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetLocationDetail']);
+        				client.GetLocationDetail(JSON.stringify(jsonstr),function (result) {
+        					console.log(result);
+        					$scope.user.provid = parseInt(result.addressid.provid);
+        					$scope.user.cityid = parseInt(result.addressid.cityid);
+        					$scope.order.address = result.formatted_address;
+        					$scope.$apply();
+        				}, function (name, err) {
+        					console.log(err);
+        					return;
+        				})
+        			},
+        			cancel: function (res) {
+        				alert('用户拒绝授权获取地理位置');
+        			}
+        		})
+			}
+		}])
+	var gid = {$gid};
+	var token = $.cookie('market_usertoken');
+	$(function(){
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+		client.GetUser($.cookie('market_usertoken'),function (result) {
+			user = JSON.parse(result);
+			$(".main_img").attr("src","__ROOT__"+user[0].url);
+			$("#main_page>a").html("<");
+			$("#main_page>a").attr("href","__URL__/goodsdetail/gid/"+gid);
+			var scope = angular.element('[ng-controller=BuyGoodsController]').scope();
+			scope.$apply(function($scope) {
+				$scope.user = user[0];
+				$scope.user.provid = parseInt($scope.user.provid)
+				$scope.user.cityid = parseInt($scope.user.cityid)
+			})
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetCitysAll']);
+		client.GetCitysAll({},function (result) {
+			all_citys = result;
+			var scope = angular.element('[ng-controller=BuyGoodsController]').scope();
+			scope.$apply(function($scope) {
+				$scope.citys = [];
+				for(var i=0;i<all_citys.length;i++){
+					if(all_citys[i].provid==$scope.user.provid)
+						$scope.citys.push(all_citys[i]);
+				}
+
+			})
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetProvince']);
+		client.GetProvince({},function (result) {
+			var scope = angular.element('[ng-controller=BuyGoodsController]').scope();
+			scope.$apply(function($scope) {
+				$scope.province = result;
+			})
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		var jsonstr = {gid:gid,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsDetail']);
+		client.GetGoodsDetail(JSON.stringify(jsonstr),function (result) {
+			// console.log(result);
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+			var scope = angular.element('[ng-controller=BuyGoodsController]').scope();
+			scope.$apply(function($scope) {
+				$scope.goods = jsonobj;
+				$scope.order.count = $scope.goods.leastcount;
+				$scope.order.price = $scope.order.count * $scope.goods.price;
+				if($scope.order.count == $scope.goods.leastcount){
+					$scope.minus_disable = true;
+				}
+			});
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	})
+	
+	
+
+
+</script>

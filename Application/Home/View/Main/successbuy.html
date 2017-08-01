@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+	<include file="Public/header" />
+	<title>订单成功</title>
+	<div class="success_title">
+		<img src="__ROOT__/Public/images/success.jpg">
+		<span>订单成功</span>
+	</div>
+	<div class="success_main">
+		<span id="countdown">3</span>秒后将会自动跳转到该订单详情
+	</div>
+</html>
+<script type="text/javascript">
+	var time = 3;
+	$("#countdown").html(time);
+	function countdown(){
+		time--;
+		$("#countdown").html(time);
+		if(time == 0){
+			var strurl = "__URL__/orderdetail/ooid/{$ooid}";
+			document.location=strurl;
+		}
+
+	}
+	setInterval("countdown()",1000);
+</script>

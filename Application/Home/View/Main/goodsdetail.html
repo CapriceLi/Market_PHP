@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollimg.css" rel="stylesheet">
+<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+<title>商品详情页</title>
+<body ng-app="myApp" ng-controller="GoodsdetailController">
+	<a class="gd_back"><</a>
+	<a ng-click="qr_scan()" class="qr_icon">
+		<img src="__ROOT__/Public/images/qr_icon.png">
+	</a>
+	<div class="detail_img">
+		<div id="wrapper" style=width:{{scrollWidth}}px>
+			<div id="scroller" style=width:{{width}}px>
+				<ul id="thelist">
+					<li style=width:{{scrollWidth}}px ng-repeat="url in goodsdetail.urls">
+						<img ng-src="__ROOT__{{url.url}}"></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div style="height: 170px;"></div>
+		<div class="detail_main">
+			<ul>
+				<li class="gd_title">{{goodsdetail.name}}</li>
+				<li class="gd_price">￥ {{goodsdetail.price}}</li>
+				<li>数量: {{goodsdetail.count}}个</li>
+				<li>卖家地址: {{goodsdetail.provname+" "+goodsdetail.cityname}}</li>
+				
+				<!-- <li class="gd_num">数量: {{goodsdetail.count}}个</li>
+				<li class="gd_lsnum">最少购买: {{goodsdetail.leastcount}}个</li>
+				<li class="gd_phone">联系方式: {{goodsdetail.phone}}</li> -->
+			</ul>
+			<div class="detail_main_describe">
+				<div style="margin-bottom: 75px;">详细介绍:<br>{{goodsdetail.describe}}</div>
+			</div>
+		</div>
+		<div class="detail_footer">
+			<ul>
+				<li ng-click="focus()" ng-show="isfocus" style="width:{{footerli}}px;">
+					<a href="">
+						<span class="icon-star"></span>
+						已关注
+					</a>
+				</li>
+				<li ng-click="focus()" ng-hide="isfocus" style="width:{{footerli}}px;">
+					<a href="">
+						<span class="icon-star-empty"></span>
+						关注
+					</a>
+				</li>
+				<li style="width:{{footerli}}px;">
+					<a href="__URL__/storedetail/uid/{{goodsdetail.uid}}" >
+						<span class="icon-home"></span>
+						店铺
+					</a>
+				</li>
+				<li style="width:{{footerli}}px;">
+					<a href="__URL__/discussion/gid/{{goodsdetail.gid}}">
+						<span class="icon-comment"></span>
+						商家
+					</a>
+				</li>
+				<li style="width:{{footerbuy}}px;" class="buy">
+					<a id="buy_link" href=""></a>
+				</li>
+			</ul>
+		</div>
+	</body>
+	<script type="text/javascript">
+		$(".gd_back").attr("href","{:U('Home/Main/main')}")
+		var app = angular.module('myApp', []);
+		app.controller('GoodsdetailController', function($scope) {
+			$scope.focus = function () {
+				jsonstr = {gid:gid,token:token,focus:$scope.isfocus};
+				$scope.isfocus = !$scope.isfocus;
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['FocusGoods']);
+				client.FocusGoods(JSON.stringify(jsonstr),function (result) {
+					console.log(result);
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+			}
+			$scope.qr_scan = function(){
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetQR']);
+				client.GetQR(gid,function (result) {
+					// alert(result);
+					var strurl = "__URL__/show_qr/qrid/"+result;
+					document.location=strurl;
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+			}
+		})	
+		function loaded() {
+			myScroll = new iScroll('wrapper', {
+				snap: true,
+				momentum: false,
+				hScrollbar: false,
+				onScrollEnd: function () {
+				}
+			});
+		}
+		
+		document.addEventListener('DOMContentLoaded', loaded, false);
+		var gid = {$gid};
+		var token = $.cookie('market_usertoken');
+		
+		var jsonstr = {gid:gid,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsDetail']);
+		client.GetGoodsDetail(JSON.stringify(jsonstr),function (result) {
+			// console.log(result);
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+			var scope = angular.element('[ng-controller=GoodsdetailController]').scope();
+			scope.$apply(function($scope) {
+				if(jsonobj.sale_type==1){
+					$("#buy_link").html("立即拍卖")
+
+				}else if(jsonobj.sale_type==0){
+					$("#buy_link").html("立即购买")
+					$("#buy_link").attr("href","__URL__/buygoods/gid/"+{$gid});
+				}if(jsonobj.state == 3){
+					$(".buy").attr("class","buydisabled");
+					$("#buy_link").attr("href","#");
+				}
+				$scope.goodsdetail = jsonobj;
+				switch(jsonobj.focus){
+					case '1': $scope.isfocus = true;break;
+					case '0': $scope.isfocus = false;break;
+				}
+				// $(".detail_head_title").append(jsonobj.name);
+				var url_count = jsonobj.urls.length;
+				$scope.scrollWidth = window.screen.width;
+				$scope.scrollHeight = window.screen.height;
+				$scope.width = url_count * $scope.scrollWidth;
+				$scope.footerli = $scope.scrollWidth/3 - 36;
+				$scope.footerbuy = $scope.scrollWidth - 3*$scope.footerli;
+				$scope.describeheight = $scope.scrollHeight - 400;
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+
+		var jsonstr = {gid:gid,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['visited_goods']);
+		client.visited_goods(JSON.stringify(jsonstr),function (result) {
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	</script>
+	</html>

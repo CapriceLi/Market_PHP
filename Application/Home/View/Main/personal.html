@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollbar.css" rel="stylesheet">
+<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll_init.js"></script>
+<body id="appElement" ng-app="myApp" ng-controller="PersonalController">
+	<include file="Public/main_head" />
+	<div class="personal_main">
+		<div class="personal_top">
+			<div class="personal_top_background">
+				<img>
+			</div>
+			<center>
+				<div class="pic_back"><img onclick="uploadpicture()" src="__ROOT__/Public/images/no_avatar.jpg" class="img-circle personal_user_img"></div>
+				<button id="uploadpic" class="btn" style="margin-left: 10px;display: none">上传</button>
+			</center>
+		</div>
+		<div class="personal_pills">
+			<ul class="nav nav-pills">
+				<li id="my_order" class="active">
+					<a >我的订单</a>
+				</li>
+				<li id="focus_goods">
+					<a>关注商品</a>
+				</li>
+				<li id="focus_store">
+					<a>关注卖家</a>
+				</li>
+			</ul>
+		</div>	
+
+		<div class="personal_list">
+			<div id="wrapper" style="margin-top:10px;top: 155px;">
+				<div id="scroller">
+					<div id="pullDown">
+						<span class="pullDownIcon"></span>
+						<span class="pullDownLabel">下拉刷新...</span>
+					</div>
+					<ul id="my_order_list" class="wx_list_m">
+						<li ng-repeat="order in orders">
+						<a href="__URL__/storedetail/uid/{{order.uid2}}"  style="margin:0;padding: 10px 0px;">
+							<div class="ps_storelink">
+								<img src="__ROOT__/Public/images/store.png">
+								<span>{{order.storename}}</span>
+								<span class="arrow">></span>
+							</div>
+						</a>
+							<a href="__URL__/orderdetail/ooid/{{order.ooid}}">
+								<img ng-src="__ROOT__{{order.url}}" class="img-polaroid main_good_img"/>
+								<p class="title ellipsis">
+									<span>{{order.state}}</span>
+									{{order.name}}
+								</p>
+								<p class="content ellipsis">购买价格：{{order.price}}</p>
+								<p class="footer ellipsis">交易地址：{{order.address}}</p>
+								<p class="footer ellipsis">交易时间：{{order.tradetime}}</p>
+								<div class="button_list"></div>
+							</a>
+						</li>
+					</ul>
+					<ul id="focus_goods_list" class="wx_list_m">
+						<li ng-repeat="goods in goodses">
+							<a href="__URL__/goodsdetail/gid/{{goods.gid}}">
+								<img ng-src="__ROOT__{{goods.url}}" class="img-polaroid main_good_img"/>
+								<p class="title ellipsis">
+									<span>{{goods.state}}</span>
+									{{goods.name}}
+								</p>
+								<p class="content ellipsis">价格：{{goods.price}}</p>
+								<p class="footer ellipsis">店铺名称：{{goods.storename}}</p>
+								<p class="footer ellipsis">剩余数量：{{goods.count}}</p>
+								<div class="button_list"></div>
+							</a>
+						</li>
+					</ul>
+					<ul id="focus_store_list" class="wx_list_m">
+						<li ng-repeat="store in stores">
+							<a href="__URL__/storedetail/uid/{{store.uid}}">
+								<img  style="width: 80px;height: 80px;" ng-src="__ROOT__/{{store.url}}" class="img-polaroid main_good_img"/>
+								<p class="title ellipsis" style="line-height: 50px;">
+									{{store.storename}}
+								</p>
+								<p class="footer ellipsis">用户名称：{{store.uname}}</p>
+								<div class="button_list"></div>
+							</a>
+						</li>
+					</ul>
+					<div id="pullUp">
+						<span class="pullUpIcon"></span>
+						<span class="pullUpLabel">上拉加载更多...</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+<script type="text/javascript">
+	var flag = 0
+	var token = $.cookie('market_usertoken');
+	var type=-1;
+	var page=0;
+	var pagesize=8;
+	getOrderList (type,page,pagesize)
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+	client.GetUser($.cookie('market_usertoken'),function (result) {
+		var user = JSON.parse(result);
+		$(".main_img,.personal_user_img,.personal_top_background>img").attr("src","__ROOT__"+user[0].url);
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	$("#personal_page").attr("class","active");
+	$(".pic2 img").attr("src","__ROOT__/Public/images/person2.png");
+	$("#personal_page>a").attr("href","#");
+	$("#my_order").click(function(){
+		init_Page()
+		$("#my_order").attr("class","active");
+		$("#focus_goods").attr("class","");
+		$("#focus_store").attr("class","");
+		getOrderList(type,page,pagesize)
+		$("#my_order_list").show();
+		$("#focus_goods_list").hide();
+		$("#focus_store_list").hide();
+		flag = 0
+	})
+	$("#focus_goods").click(function(){
+		init_Page()
+		$("#my_order").attr("class","");
+		$("#focus_goods").attr("class","active");
+		$("#focus_store").attr("class","");
+		getGoodsList(type,page,pagesize);
+		$("#my_order_list").hide();
+		$("#focus_goods_list").show();
+		$("#focus_store_list").hide();
+		flag = 1
+	})
+	$("#focus_store").click(function(){
+		init_Page()
+		$("#my_order").attr("class","");
+		$("#focus_goods").attr("class","");
+		$("#focus_store").attr("class","active");
+		getStoreList (type,page,pagesize)
+		$("#my_order_list").hide();
+		$("#focus_goods_list").hide();
+		$("#focus_store_list").show();
+		flag = 2
+	})
+	var app = angular.module('myApp', []);
+	app.controller('PersonalController', function($scope) {
+	})		
+	
+	function init_Page(){
+		type=-1;
+		page=0;
+		pagesize=8;
+	}
+	function getUserDetail(){
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['getUserDetail']);
+		client.GetFocusStoreList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+
+			var scope = angular.element('[ng-controller=PersonalController]').scope();
+			scope.$apply(function($scope) {
+				console.log(jsonobj);
+				$scope.stores=$scope.stores.concat(jsonobj);
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+
+	function getGoodsList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		console.log(jsonstr);
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetFocusGoodsList']);
+		client.GetFocusGoodsList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":jsonobj[i].state = "待审核";break;
+					case "1":jsonobj[i].state = "拍卖中";break;
+					case "2":jsonobj[i].state = "销售中";break;
+					case "3":jsonobj[i].state = "已售完";break;
+				}
+			}
+			var scope = angular.element('[ng-controller=PersonalController]').scope();
+			scope.$apply(function($scope) {
+				$scope.goodses = jsonobj;
+				
+				// setTimeout("myScroll.refresh();console.log(1)",1000)
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function addGoodsList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		console.log(jsonstr);
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetFocusGoodsList']);
+		client.GetFocusGoodsList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+				// console.log(jsonobj);
+				for(var i=0; i<jsonobj.length;i++){
+					switch(jsonobj[i].state){
+						case "0":jsonobj[i].state = "待审核";break;
+						case "1":jsonobj[i].state = "拍卖中";break;
+						case "2":jsonobj[i].state = "销售中";break;
+						case "3":jsonobj[i].state = "已售完";break;
+					}
+				}
+				var scope = angular.element('[ng-controller=PersonalController]').scope();
+				scope.$apply(function($scope) {
+					console.log(jsonobj);
+					$scope.goodses=$scope.goodses.concat(jsonobj);
+				});
+				myScroll.refresh();
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+	}
+	function getOrderList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetOrderList']);
+		client.GetOrderList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":jsonobj[i].state = "待确认";break;
+					case "1":jsonobj[i].state = "交易中";break;
+					case "2":jsonobj[i].state = "已完成";break;
+					case "3":jsonobj[i].state = "已取消";break;
+				}
+			}
+
+			var scope = angular.element('[ng-controller=PersonalController]').scope();
+			scope.$apply(function($scope) {
+				$scope.orders = jsonobj;
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function addOrderList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		console.log(jsonstr);
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetOrderList']);
+		client.GetOrderList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":jsonobj[i].state = "卖家确认";break;
+					case "1":jsonobj[i].state = "交易中";break;
+					case "2":jsonobj[i].state = "已完成";break;
+					case "3":jsonobj[i].state = "已取消";break;
+				}
+			}
+
+			var scope = angular.element('[ng-controller=PersonalController]').scope();
+			scope.$apply(function($scope) {
+				console.log(jsonobj);
+				$scope.orders=$scope.orders.concat(jsonobj);
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function getStoreList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetFocusStoreList']);
+		client.GetFocusStoreList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			console.log(jsonobj);
+
+			var scope = angular.element('[ng-controller=PersonalController]').scope();
+			scope.$apply(function($scope) {
+				$scope.stores = jsonobj;
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function addStoreList (type,page,pagesize){
+		var jsonstr = {type:type, page:page, pagesize:pagesize,token:token};
+		console.log(jsonstr);
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetFocusStoreList']);
+		client.GetFocusStoreList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+
+			var scope = angular.element('[ng-controller=PersonalController]').scope();
+			scope.$apply(function($scope) {
+				console.log(jsonobj);
+				$scope.stores=$scope.stores.concat(jsonobj);
+			});
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+
+/**
+		 * 下拉刷新 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullDownAction () {
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				el = document.getElementById('thelist');
+				$("#thelist").empty();
+				page=0;
+				switch(flag){
+					case 0:getOrderList(type,page,pagesize);break;
+					case 1:getGoodsList(type,page,pagesize);break;
+					case 2:getStoreList(type,page,pagesize);break;
+				}
+			}, 1000);	// <-- Simulate network congestion, remove setTimeout from production!
+		}
+
+		/**
+		 * 滚动翻页 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullUpAction () { 
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				page++;
+				el = document.getElementById('thelist');
+				switch(flag){
+					case 0:addOrderList(type,page,pagesize);break;
+					case 1:addGoodsList(type,page,pagesize);break;
+					case 2:addStoreList(type,page,pagesize);break;
+				}
+			}, 1000);	// <-- Simulate network congestion, remove setTimeout from production!
+		} 
+	</script>
+	</html>

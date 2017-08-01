@@ -1,0 +1,216 @@
+<?php
+require_once "jssdk.php";
+$jssdk = new JSSDK("wx951ac1092ad9a5bf", "4918f8fab950eddfba7e985f76a97b46");
+$signPackage = $jssdk->GetSignPackage();
+?>
+<!DOCTYPE html>
+<include file="Public/header" />
+<html>
+<head>
+	<title>用户修改页</title>
+</head>	
+<body ng-app="myApp" ng-controller="CreateGoodsController">
+	<include file="Public/detail_head" />
+	<div class="alert alert-error market_error" id="error" ng-bind="error_info"></div>
+	<div class="cg_main">
+		<ul>
+			<li>商品名称:<input ng-model="goods.name"/></li>
+			<li>商品价格:<input type="number" ng-model="goods.price"/></li>
+			<li>商品数量:<input type="number" ng-model="goods.count"/></li>
+			<li ng-click="uploadpic()">上传图片:<span>></span></li>
+			<li ng-show="ispic" style="padding: 10px 0;">
+
+				<span class="remove1"><span class="icon-remove "></span></span><img id="pic1" src="__ROOT__/Public/images/nopic.jpg">
+				<span class="remove2"><span class="icon-remove"></span></span><img id="pic2" src="__ROOT__/Public/images/nopic.jpg">
+				<span class="remove3"><span class="icon-remove"></span></span><img id="pic3" src="__ROOT__/Public/images/nopic.jpg">
+			</li>
+			<li>商品类型:<select ng-model="goods.type" ng-options="item.id as item.value for item in data.type"></select></li>
+			<li>销售类型:<select disabled="true" ng-model="goods.sale_type" ng-options="item.id as item.value for item in data.sale_type"></select></li>
+			<li>描述:<textarea ng-model="goods.describe" style="width: 231px; height: 83px;"></textarea></li>
+			<div style="height: 40px;width: 2px;"></div>
+		</ul>
+		<div class="us_submit">
+			<div class="submit"  ng-click="submit()">提交</div>
+		</div>
+	</div>
+	<!-- {{goods}} -->
+</body>
+<script type="text/javascript">
+	var images = {
+		localId: [],
+		serverId: []
+	};
+	images.serverId[0] = "";
+	images.serverId[1] = "";
+	images.serverId[2] = "";
+	$("#main_page>a").html("<");
+	$("#main_page>a").attr("href","{:U('Home/User/userstore')}");
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+	client.GetUser($.cookie('market_usertoken'),function (result) {
+		user = JSON.parse(result);
+		console.log(user);
+		$(".main_img").attr("src","__ROOT__"+user[0].url);
+		$(".personal_user_img").attr("src","__ROOT__"+user[0].url);
+		$(".detail_head_title").html("创建商品");
+		var scope = angular.element('[ng-controller=CreateGoodsController]').scope();
+		scope.$apply(function($scope) {
+			$scope.user = user[0];
+		})
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	$("input").keypress(function(){
+		$(".error_create_goods").hide();
+	})
+	var app = angular.module('myApp', []);
+	app.controller('CreateGoodsController', function($scope) {
+		$scope.data={};
+		$scope.ispic = false;
+		$scope.goods={name:"",price:"",count:""};
+		$scope.goods.token=$.cookie('market_usertoken');
+		$scope.goods.describe = "";
+		$scope.goods.type = 1;
+		$scope.goods.sale_type = 0;
+		$scope.data.type = [{id:1,value:'日常用品'},{id:2,value:'电子产品'},{id:3,value:'文化产品'},{id:4,value:'食品'},{id:0,value:'其他'}];
+		$scope.data.sale_type = [{id:0,value:'销售'},{id:1,value:'拍卖'}];
+		$scope.submit = function(){
+			// alert(images.serverId);
+			// return;
+			$scope.goods.images=images.serverId;
+			if($scope.goods.name==""){
+				$("#error").show();
+				$("#error").html("请输入商品名称");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if($scope.goods.price==""){
+				$("#error").show();
+				$("#error").html("请输入商品价格");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if($scope.goods.count==""){
+				$("#error").show();
+				$("#error").html("请输入商品数量");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			console.log($scope.goods);
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['CreateGoods']);
+			client.CreateGoods(JSON.stringify($scope.goods),function (result) {
+				// alert(result);
+				// console.log(result);
+				var strurl = "{:U('Home/User/userstore')}";
+				document.location=strurl;
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+		}
+		$scope.uploadpic = function(){
+			$scope.ispic = !$scope.ispic;
+		}
+	})
+
+	$("#pic1").click(function(){
+		wx.chooseImage({
+			success: function (res) {
+				images.localId = res.localIds;
+				$("#pic1").attr("src",images.localId);
+				$(".remove1").show();
+				var i = 0, length = images.localId.length;
+				images.serverId[0] = "";
+				function upload() {
+					wx.uploadImage({
+						localId: images.localId[i],
+						success: function (res) {
+							images.serverId[0]=res.serverId;
+						},
+						fail: function (res) {
+							alert(JSON.stringify(res));
+						}
+					});
+				}
+				upload();
+			}
+		});
+	})
+	$(".remove1").click(function(){
+		alert('remove1');
+		$(".remove1").hide();
+		images.serverId[0] = "";
+		$("#pic1").attr("src","__ROOT__/Public/images/nopic.jpg");
+	})
+	$("#pic2").click(function(){
+		wx.chooseImage({
+			success: function (res) {
+				images.localId = res.localIds;
+				$("#pic2").attr("src",images.localId);
+				$(".remove2").show();
+				var i = 0, length = images.localId.length;
+				images.serverId[1] = "";
+				function upload() {
+					wx.uploadImage({
+						localId: images.localId[i],
+						success: function (res) {
+							images.serverId[1]=res.serverId;
+						},
+						fail: function (res) {
+							alert(JSON.stringify(res));
+						}
+					});
+				}
+				upload();
+			}
+		});
+	})
+	$(".remove2").click(function(){
+		alert('remove2');
+		$(".remove2").hide();
+		images.serverId[1] = "";
+		$("#pic2").attr("src","__ROOT__/Public/images/nopic.jpg");
+	})
+	$("#pic3").click(function(){
+		wx.chooseImage({
+			success: function (res) {
+				images.localId = res.localIds;
+				$("#pic3").attr("src",images.localId);
+				$(".remove3").show();
+				var i = 0, length = images.localId.length;
+				images.serverId[2] = "";
+				function upload() {
+					wx.uploadImage({
+						localId: images.localId[i],
+						success: function (res) {
+							images.serverId[2]=res.serverId;
+						},
+						fail: function (res) {
+							alert(JSON.stringify(res));
+						}
+					});
+				}
+				upload();
+			}
+		});
+	})
+	$(".remove3").click(function(){
+		alert('remove3');
+		$(".remove3").hide();
+		images.serverId[2] = "";
+		$("#pic3").attr("src","__ROOT__/Public/images/nopic.jpg");
+	})
+	wx.config({
+		debug: false,
+		appId: '<?php echo $signPackage["appId"];?>',
+		timestamp: '<?php echo $signPackage["timestamp"];?>',
+		nonceStr: '<?php echo $signPackage["nonceStr"];?>',
+		signature: '<?php echo $signPackage["signature"];?>',
+		jsApiList: [
+		'chooseImage',
+		'uploadImage'
+		// 'previewImage'
+		]
+	});
+</script>
+</html>

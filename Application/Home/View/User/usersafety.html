@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<html>
+<head>
+	<title>用户修改页</title>
+</head>
+<body ng-app="myApp" ng-controller="UserSafetyController">
+	<include file="Public/detail_head" />
+	<div class="alert alert-error market_error" id="error" ng-bind="error_info">
+	</div>
+	<div class="usafety_main">
+		<div class="usafety_main_1">
+			<ul>
+				<li>用户昵称<span>{{user.uname}}</span></li>
+				<li ng-click="showRealname()">用户真实姓名<span class="arrow">></span><span>{{user.realname}}</span></li>
+				<li ng-show="isRealname"><input ng-model="user.realname"/></li>
+				<li ng-click="showUphone()" id="showUphone" class="ul_end">修改手机号码<span class="arrow">></span><span>{{user.uphone.substring(0,3)+'****'+user.uphone.substring(7,11)}}</span></li>
+				<li ng-show="isUphone"  class="ul_end"><input ng-model="user.uphone" pattern="[0-9]*"/></li>
+			</ul>
+		</div>
+		<div class="usafety_main_2">
+			<ul>
+				<li class="ul_end" id="showChangPwd" ng-click="showChangPwd()">修改登陆密码<span class="arrow">></span></li>
+				<li ng-show="isChangPwd">旧密码:<input type="password" ng-model="user.o_pwd"/></li>
+				<li ng-show="isChangPwd">新密码:<input type="password" ng-model="user.upwd_1"/></li>
+				<li ng-show="isChangPwd"  class="ul_end">再次输入密码:<input type="password" ng-model="user.upwd_2"/></li>
+			</ul>
+		</div>
+	</div>
+	<div class="muser_submit">
+		<div class="submit"  ng-click="submit()">提交</div>
+	</div>
+</body>
+</html>
+<script type="text/javascript">
+	var app = angular.module('myApp', []);
+	app.controller('UserSafetyController', function($scope,$timeout) {
+		$scope.isUphone = false;
+		$scope.isRealname = false;
+		$scope.isError = false;
+		$scope.showRealname = function(){
+			$scope.isRealname = !$scope.isRealname;
+			$scope.user.realname = $scope.user.realname_o;
+		}
+		$scope.showUphone = function(){
+			$scope.isUphone = !$scope.isUphone;
+			if ($scope.isUphone)
+				$("#showUphone").attr("class","")
+			else
+				$("#showUphone").attr("class","ul_end")
+			$scope.user.uphone = $scope.user.uphone_o;
+		}
+		$scope.showChangPwd = function(){
+			$scope.isChangPwd = !$scope.isChangPwd;
+			if ($scope.isChangPwd)
+				$("#showChangPwd").attr("class","");
+			else
+				$("#showChangPwd").attr("class","ul_end");
+			$scope.user.o_pwd = $scope.user.upwd_2 = $scope.user.upwd_1 = "";
+		}
+		$scope.submit = function(){
+			if($scope.user.uphone.length != 11){
+				$("#error").show();
+				$("#error").html("请输入正确的手机");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if($scope.isChangPwd == true){
+				if($scope.user.upwd_1 != $scope.user.upwd_2){
+					$("#error").show();
+					$("#error").html("输入的两次密码不同");
+					setTimeout("$(\"#error\").hide();",2000);
+					return;
+				}
+				if($scope.user.o_pwd==""){
+					$("#error").show();
+					$("#error").html("请输入旧密码");
+					setTimeout("$(\"#error\").hide();",2000);
+					return;
+				}
+				if($scope.user.upwd_1=="" || $scope.user.upwd_2==""){
+					$("#error").show();
+					$("#error").html("请输入新密码");
+					setTimeout("$(\"#error\").hide();",2000);
+					return;
+				}
+			}
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['UserSafety']);
+			client.UserSafety(JSON.stringify($scope.user),function (result) {
+				var jsonobj = JSON.parse(result);
+				if(jsonobj.info=="false"){
+					if(jsonobj.errorcode == "005"){
+						$("#error").show();
+						$("#error").html("旧密码错误");
+						setTimeout("$(\"#error\").hide();",2000);
+						return;
+					}
+				}else{
+					window.location.reload();
+				}
+			console.log(jsonobj);
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		}
+	})
+	$("#main_page>a").html("<");
+	$(".detail_head_title").html("账户与安全");
+	$("#main_page>a").attr("href","{:U('Home/Main/user')}");
+
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+	client.GetUser($.cookie('market_usertoken'),function (result) {
+		user = JSON.parse(result);
+		var scope = angular.element('[ng-controller=UserSafetyController]').scope();
+		scope.$apply(function($scope) {
+			$scope.user = user[0];
+			$scope.user.uphone_o =  $scope.user.uphone;
+			$scope.user.realname_o =  $scope.user.realname;
+		})
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+</script>

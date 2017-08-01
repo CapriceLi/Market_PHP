@@ -1,11 +1,371 @@
+<?php
+require_once "jssdk.php";
+$jssdk = new JSSDK("wx951ac1092ad9a5bf", "4918f8fab950eddfba7e985f76a97b46");
+$signPackage = $jssdk->GetSignPackage();
+?>
 <!DOCTYPE html>
 <include file="Public/header" />
+<link href="__ROOT__/Public/css/scrollbar.css" rel="stylesheet">
+<body>
+	<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll.js"></script>
+	<script type="text/ecmascript" src="__ROOT__/Public/js/iscroll_init.js"></script>
+	<include file="Public/main_head" />
+	<a class="recommend_buttom" href="__URL__/recommend">推荐商品</a>
+	<div class="main_search">
+		<select class="province" onchange="provinceChange()">
+		</select>
+		<div class="btn-group" style="float: left;">
+			<button type="button" class="main_search_btn dropdown-toggle" 
+			data-toggle="dropdown">
+			<span id="dropdown_text"></span>
+			<span class="main_search_caret"></span>
+		</button>
+		<ul class="dropdown-menu" role="menu" style="border: none;">
+			<li>
+				<a id="type_all">全部</a>
+			</li>
+			<li>
+				<a id="type_1">日常用品</a>
+			</li>
+			<li>
+				<a id="type_2">电子产品</a>
+			</li>
+			<li>
+				<a id="type_3">文化产品</a>
+			</li>
+			<li>
+				<a id="type_4">食品</a>
+			</li>
+			<li>
+				<a id="type_0">其他</a>
+			</li>
+		</ul>
+	</div>
+	<input type="text" class="main_search_text" style="width: 30%;font-size: 12px;" placeholder="输入商品名"/>
+	<a href="{:U('Home/User/discussionlist')}"><span class="discussion">
+		<div class="notice" style="display: none;"></div>
+		<img src="__ROOT__/Public/images/discussion.png">
+	</span></a>
+	<div class="main_audio" onclick="showMask()"><img src="__ROOT__/Public/images/voice_icon.png"></div>
+	<div class="model_cover" onclick="hideMask()" >
 
-<div class="login_main">
-	<h1 id='test'></h1>
+	</div>
+	<div class="model_main">
+		<div class="model_circle">
+			<div class="model_audio">
+				<img src="__ROOT__/Public/images/audio_icon.png">
+			</div>
+		</div>
+		<div class="model_text">
+			按住 说出你要的商品
+		</div>
+	</div>
 </div>
-<script type="text/javascript">
-	$("#test").html($.cookie('usertoken'))
-</script>
 
+<div id="wrapper">
+	<div id="scroller" style="position: relative;">
+		<div id="pullDown">
+			<span class="pullDownIcon"></span>
+			<span class="pullDownLabel">下拉刷新...</span>
+		</div>
+		<ul id="thelist" class="wx_list_m">
+		</ul>
+		<div id="pullUp">
+			<span class="pullUpIcon"></span>
+			<span class="pullUpLabel">上拉加载更多...</span>
+		</div>
+	</div>
+</div>
+</body>
 </html>
+<script type="text/javascript">
+	var type=-1;
+	var page=0;
+	var search="";
+	var pagesize=8;
+	var user;
+	var token = $.cookie('market_usertoken');
+	var provid=10;
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+	client.GetUser($.cookie('market_usertoken'),function (result) {
+		user = JSON.parse(result);
+		$(".main_img").attr("src","__ROOT__"+user[0].url);
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetProvince']);
+	client.GetProvince({},function (result) {
+		for(var i=0; i<result.length;i++){
+			if(result[i].provid == provid){
+				add = "<option value =\""+result[i].provid+"\" selected=\"selected\">"+result[i].provname+"</option>"
+			}else{
+				add = "<option value =\""+result[i].provid+"\">"+result[i].provname+"</option>"}
+				$(".province").append(add);
+			}
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetDicussionState']);
+	client.GetDicussionState(token,function (result) {
+		console.log(result);
+		if(result == 1){
+			$(".main_search .notice").show();
+		}
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+	getList(type,search,page,pagesize,provid);
+
+	$("#dropdown_text").text("全部");
+	$("#main_page").attr("class","active");
+	$(".pic1 img").attr("src","__ROOT__/Public/images/home2.png");
+	$("#main_page>a").attr("href","#");
+	$("#type_all").click(function(){
+		$("#dropdown_text").text("全部");
+		type=-1;
+		page=0;
+		getList(type,search,page,pagesize,provid);
+
+	})
+	$("#type_1").click(function(){
+		$("#dropdown_text").text("日常");
+		type=1;
+		page=0;
+		getList(type,search,page,pagesize,provid);
+	})
+	$("#type_2").click(function(){
+		$("#dropdown_text").text("电子");
+		type=2;
+		page=0;
+		getList(type,search,page,pagesize,provid);
+	})
+	$("#type_3").click(function(){
+		$("#dropdown_text").text("文化");
+		type=3;
+		page=0;
+		getList(type,search,page,pagesize,provid);
+	})
+	$("#type_4").click(function(){
+		$("#dropdown_text").text("食品");
+		type=4;
+		page=0;
+		getList(type,search,page,pagesize,provid);
+	})
+	$("#type_0").click(function(){
+		$("#dropdown_text").text("其他");
+		type=0;
+		page=0;
+		getList(type,search,page,pagesize,provid);
+	})
+	function provinceChange(){
+		provid = $(".province").val();
+		// console.log(provid);
+		var type=-1;
+		var page=0;
+		var search="";
+		getList(type,search,page,pagesize,provid);
+	}
+	function getList(type,search,page,pagesize,provid){
+		var jsonstr = {type:type,token: token, search:search, provid:provid, page:page, pagesize:pagesize};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsList']);
+		client.GetGoodsList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			var add = "";
+			var state = "";
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":state = "待审核";break;
+					case "1":state = "拍卖中";break;
+					case "2":state = "销售中";break;
+					case "3":state = "已售完";break;
+				}
+				add +="<li>"+
+				"<a href='__URL__/goodsdetail/gid/"+jsonobj[i].gid+"'>"+
+				"<img src=\"__ROOT__"+jsonobj[i].url+"\" class=\"img-polaroid main_good_img\"/>"+
+				"<p class=\"title ellipsis\">"+
+				"<span>"+state+"</span>"+jsonobj[i].name+
+				"</p>"+
+				"<p class=\"content ellipsis\">价格：￥"+jsonobj[i].price+"</p>"+
+				"<p class=\"footer ellipsis\">店铺名称："+jsonobj[i].storename+"</p>"+
+				"<p class=\"footer ellipsis\">剩余数量："+jsonobj[i].count+"</p>"+
+				// "<p class=\"footer ellipsis\">上架时间："+jsonobj[i].createtime+"</p>"+
+				"<div class=\"button_list\"></div>"+
+				"</a>"+
+				"</li>"
+			}
+			$("#thelist").html(add);
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+	function addList(type,search,page,pagesize){
+		var jsonstr = {type:type,token: token, search:search, provid:provid, page:page, pagesize:pagesize};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetGoodsList']);
+		client.GetGoodsList(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			var add = "";
+			var state = "";
+			console.log(jsonobj);
+			for(var i=0; i<jsonobj.length;i++){
+				switch(jsonobj[i].state){
+					case "0":state = "待审核";break;
+					case "1":state = "拍卖中";break;
+					case "2":state = "销售中";break;
+					case "3":state = "已售完";break;
+				}
+				add +="<li>"+
+				"<a href='__URL__/goodsdetail/gid/"+jsonobj[i].gid+"'>"+
+				"<img src=\"__ROOT__"+jsonobj[i].url+"\" class=\"img-polaroid main_good_img\"/>"+
+				"<p class=\"title ellipsis\">"+
+				"<span>"+state+"</span>"+jsonobj[i].name+
+				"</p>"+
+				"<p class=\"content ellipsis\">价格：￥"+jsonobj[i].price+"</p>"+
+				"<p class=\"footer ellipsis\">店铺名称："+jsonobj[i].storename+"</p>"+
+				"<p class=\"footer ellipsis\">剩余数量："+jsonobj[i].count+"</p>"+
+				// "<p class=\"footer ellipsis\">上架时间："+jsonobj[i].createtime+"</p>"+
+				"<div class=\"button_list\"></div>"+
+				"</a>"+
+				"</li>"
+			}
+			$("#thelist").append(add);
+			myScroll.refresh();
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	}
+
+
+
+	/**
+		 * 下拉刷新 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullDownAction () {
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				search = "";
+				el = document.getElementById('thelist');
+				$("#thelist").empty();
+				page=0;
+				getList(type,search,page,pagesize,provid);
+			}, 1000);	
+		// <-- Simulate network congestion, remove setTimeout from production!
+	}
+
+		/**
+		 * 滚动翻页 （自定义实现此方法）
+		 * myScroll.refresh();		// 数据加载完成后，调用界面更新方法
+		 */
+		 function pullUpAction () { 
+			setTimeout(function () {	// <-- Simulate network congestion, remove setTimeout from production!
+				var el, li, i;
+				el = document.getElementById('thelist');
+				page++;
+				addList(type,search,page,pagesize,provid);
+			}, 1000);	// <-- Simulate network congestion, remove setTimeout from production!
+		} 
+		
+		$('.main_search_text').keydown(function(e){
+			if(e.keyCode==13){
+				search=$(".main_search_text").val().trim();
+				type = -1;
+				page = 0;
+				getList(-1,search,page,pagesize,provid)	
+			}})
+		function showMask(){
+			$(".model_main").show();
+			$(".model_cover").fadeIn(500);
+			$(".model_main").animate({top:'50px',opacity:'1'});
+		}
+
+		function hideMask(){
+			$(".model_cover").fadeOut(500);
+			$(".model_main").animate({top:'0px',opacity:'0'});
+			setTimeout("$('.model_main').hide();",500);
+		}
+
+		var obj = document.getElementsByClassName('model_circle');
+		var Interval;
+		console.log(obj);
+		obj[0].addEventListener('touchstart', function(event) {
+			$(".model_circle").attr("style","background-color:#FF6008");
+			wx.startRecord({
+				cancel: function () {
+					alert('用户拒绝授权录音');
+				}
+			});
+		});
+		obj[0].addEventListener('touchend', function(event) {
+			$(".model_circle").attr("style","background-color:white	");
+			wx.stopRecord({
+				success: function (res) {
+					wx.translateVoice({
+   					localId: res.localId, // 需要识别的音频的本地Id，由录音相关接口获得
+    				isShowProgressTips: 1, // 默认为1，显示进度提示
+    				success: function (res) {
+        				// $(".model_text").html("你所说的是："+res.translateResult)// 语音识别的结果
+        				search=res.translateResult.substring(0,res.translateResult.length-1);
+        				$(".main_search_text").val(search);
+        				type = -1;
+        				page = 0;
+        				getList(-1,search,page,pagesize,provid);
+        				hideMask();
+        			}
+        		});
+				},
+				fail: function (res) {
+					alert(JSON.stringify(res));
+				}
+			});
+		});
+		wx.ready(function(){
+			wx.getLocation({
+				success: function (res) {
+        		var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+       			var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+        		var speed = res.speed; // 速度，以米/每秒计
+        		var accuracy = res.accuracy; // 位置精度
+        		var jsonstr = {latitude:latitude,longitude: longitude};
+        		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetLocation']);
+        		client.GetLocation(JSON.stringify(jsonstr),function (result) {
+        			provid = parseInt(result.provid);
+        			$(".province").val(provid);
+        			var type=-1;
+					var page=0;
+					var search="";
+        			getList(type,search,page,pagesize,provid);
+        		}, function (name, err) {
+        			console.log(err);
+        			return;
+        		})
+        	},
+        	cancel: function (res) {
+        		alert('用户拒绝授权获取地理位置');
+        	}
+        });
+		})
+
+		wx.config({
+			debug: false,
+			appId: '<?php echo $signPackage["appId"];?>',
+			timestamp: '<?php echo $signPackage["timestamp"];?>',
+			nonceStr: '<?php echo $signPackage["nonceStr"];?>',
+			signature: '<?php echo $signPackage["signature"];?>',
+			jsApiList: [
+			'startRecord',
+			'stopRecord',
+			'onRecordEnd',
+			'stopVoice',
+			'translateVoice',
+			'getLocation'
+		// 'previewImage'
+		]
+	});
+</script>

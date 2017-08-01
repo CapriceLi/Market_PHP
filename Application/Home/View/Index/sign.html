@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<include file="Public/header" />
+<body ng-app="myApp" ng-controller="SignController">
+	<div class="alert alert-error market_error" id="error" ng-bind="error_info"></div>
+	<center>
+		<div class="sign_main">
+			<div class="sign_title">注册</div>
+			<br>
+			<div class="alert alert-error error_sign"> <strong></strong>
+			</div>
+			<div class="sign_phone input-prepend">
+				<span class="add-on">手机:</span>
+				<input class="span2" ng-model="user.uphone" type="text" pattern="[0-9]*"/>
+			</div>
+			<br>
+			<br>
+			<div class="sign_username input-prepend">
+				<span class="add-on">用户名:</span>
+				<input class="span2" ng-model="user.uname" type="text"/>
+			</div>
+			<br>
+			<br>
+			<div class="sign_password input-prepend">
+				<span class="add-on">密码:</span>
+				<input class="span2" ng-model="user.upwd" type="password"/>
+			</div>
+			<br>
+			<br>
+			<div class="sign_repassword input-prepend">
+				<span class="add-on">再次输入密码:</span>
+				<input class="span2" ng-model="user.upwd2" type="password"/>
+			</div>
+<!-- 		<br>
+		<br>
+		<div class="sign_sex input-prepend">
+			<span class="add-on">性别:</span>
+			<select>
+				<option value ="0">男</option>
+				<option value ="1">女</option>
+			</select>
+		</div> -->
+		<br>
+		<br>
+		<div class="sign_email input-prepend">
+			<span class="add-on">email:</span>
+			<input class="span2" ng-model="user.email" type="email"/>
+		</div>
+		<br>
+		<br>
+		<div class="sign_email input-prepend">
+			<span class="add-on">真实姓名:</span>
+			<input class="span2" ng-model="user.realname" type="text" />
+		</div>
+		<br>
+		<br>
+		居住地：
+		<select ng-change="SelectPorvince()" class="muser_province" ng-model="user.provid" ng-options="item.provid as item.provname for item in province"></select>
+		<select class="muser_city" ng-model="user.cityid" ng-options="item.cityid as item.cityname for item in citys"></select>
+		<div class="submit" ng-click="submit()" style="cursor:pointer">
+			<a>提交</a>
+		</div>
+	</div>
+</center>
+</body>
+</html>
+
+<script type="text/javascript">
+	var app = angular.module('myApp', []);
+	app.controller('SignController', function($scope) {
+		$scope.user = {uanme:"",uphone:"",upwd:"",upwd2:"",email:""};
+		$scope.SelectPorvince = function(){
+				// console.log($scope.user.provid);
+				// console.log(all_citys);
+				$scope.citys = [];
+				for(var i=0;i<all_citys.length;i++){
+					if(all_citys[i].provid==$scope.user.provid)
+						$scope.citys.push(all_citys[i]);
+				}
+				$scope.user.cityid = $scope.citys[0].cityid;
+			}
+		$scope.submit = function(){
+			var regphone = /^1[3|4|5|7|8][0-9]{9}$/;
+			var regemail = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+			// console.log(regphone.test($scope.user.uphone));
+			if($scope.user.uphone == ""){
+				$("#error").show();
+				$("#error").html("手机本能为空");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if($scope.user.uphone == ""){
+				$("#error").show();
+				$("#error").html("用户名不能为空");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if($scope.user.upwd == ""){
+				$("#error").show();
+				$("#error").html("密码不能为空");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if(!regphone.test($scope.user.uphone)){
+				$("#error").show();
+				$("#error").html("请输入正确的手机号");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if(!regemail.test($scope.user.email)){
+				$("#error").show();
+				$("#error").html("请输入正确的邮箱地址");
+				setTimeout("$(\"#error\").hide();",2000);
+				return;
+			}
+			if ($scope.user.upwd == $scope.user.upwd2) {
+				// var jsonstr = {"uname":uname,"upwd":upwd,"sex":sex,"uphone":uphone,"email":email};
+				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['sign']);
+				client.sign(JSON.stringify($scope.user),function (result) {
+					var jsonobj = JSON.parse(result);
+					console.log(jsonobj);
+					if(jsonobj.errorcode=="002"){
+						$("#error").show();
+						$("#error").html("有重复的手机");
+						setTimeout("$(\"#error\").hide();",2000);
+						return;
+					}if(jsonobj.errorcode=="003"){
+						$("#error").show();
+						$("#error").html("有重复的用户");
+						setTimeout("$(\"#error\").hide();",2000);
+						return;
+					}
+					else{
+						var strurl = "{:U('Home/Main/main')}";
+						$.cookie('market_usertoken', jsonobj.utoken,{ expires: -1, path: '/'}); 
+						$.cookie('market_usertoken', jsonobj.utoken,{ expires: 7, path: '/' }); 
+						document.location=strurl;
+					}
+				}, function (name, err) {
+					console.log(err);
+					return;
+				})
+
+				return
+			}
+			$("#error").show();
+			$("#error").html("两次密码必须一致");
+			setTimeout("$(\"#error\").hide();",2000);
+		}
+	})
+
+
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetProvince']);
+	client.GetProvince({},function (result) {
+		var scope = angular.element('[ng-controller=SignController]').scope();
+		scope.$apply(function($scope) {
+			$scope.province = result;
+			$scope.user.provid = 11;
+		})
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+
+	var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetCitysAll']);
+	client.GetCitysAll({},function (result) {
+		all_citys = result;
+		var scope = angular.element('[ng-controller=SignController]').scope();
+		scope.$apply(function($scope) {
+			$scope.citys = [];
+			for(var i=0;i<all_citys.length;i++){
+				if(all_citys[i].provid==$scope.user.provid)
+					$scope.citys.push(all_citys[i]);
+			}
+			$scope.user.cityid = 1018;
+
+		})
+	}, function (name, err) {
+		console.log(err);
+		return;
+	})
+</script>

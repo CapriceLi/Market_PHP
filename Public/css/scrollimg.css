@@ -1,0 +1,79 @@
+.detail_img #wrapper {
+	width:320px;
+	height:170px;
+	float:left;
+	position:relative;	/* On older OS versions "position" and "z-index" must be defined, */
+	z-index:1;			/* it seems that recent webkit is less picky and works anyway. */
+	overflow:hidden;
+}
+.detail_img #scroller {
+	width:640px;
+	height:100%;
+	float:left;
+	padding:0;
+}
+
+
+.detail_img #scroller ul {
+	list-style:none;
+	display:block;
+	float:left;
+	width:100%;
+	height:100%;
+	padding:0;
+	margin:0;
+	text-align:left;
+}
+
+.detail_img #scroller li {
+	-webkit-box-sizing:border-box;
+	-moz-box-sizing:border-box;
+	-o-box-sizing:border-box;
+	box-sizing:border-box;
+	display:block; float:left;
+	width:320px; height:170px;
+	text-align:center;
+	font-family:georgia;
+	font-size:18px;
+	line-height:140%;
+}
+
+.detail_img #indicator > li.active {
+	background:#888;
+}
+
+.detail_img #indicator > li:last-child {
+	margin:0;
+}
+
+.detail_img #indicator, #indicator > li {
+	display:block; float:left;
+	list-style:none;
+	padding:0; margin:0;
+}
+
+.detail_img #indicator {
+	width:110px;
+	padding:12px 0 0 30px;
+}
+.detail_img img{
+	max-width: 100%;
+	max-height: 100%;
+	width: auto;
+	height: auto;
+}
+.detail_img #indicator > li {
+	text-indent:-9999em;
+	width:8px; height:8px;
+	-webkit-border-radius:4px;
+	-moz-border-radius:4px;
+	-o-border-radius:4px;
+	border-radius:4px;
+	background:#ddd;
+	overflow:hidden;
+	margin-right:4px;
+}
+.detail_img #nav {
+	width:300px;
+	float:left;
+}

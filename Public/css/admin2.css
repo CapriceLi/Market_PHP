@@ -1,0 +1,129 @@
+body {
+	margin: 0px;
+	padding: 0px;
+	font-family:Tahoma,Arial,Roboto,"Droid Sans","Helvetica Neue","Droid Sans Fallback","Heiti SC","Hiragino Sans GB",Simsun,sans-self;
+	/*background-color: #F9F9F9;*/
+
+}
+th{
+	text-align: center !important;
+}
+.admin_nav{
+	/*position: relative;*/
+	/*float: left;*/
+	background-color: white;
+	height:100%;
+	z-index: 10;
+	padding: 10px;
+	/*box-shadow: 0px 0px 6px 1px #E4E4E4;*/
+}
+.map_nav{
+/*	display: none;*/
+
+}
+.dropup .button_div{
+	color: #563d7c;
+	font-weight: bolder;
+	border-left: 0px solid #563d7c;
+}
+.nav_index{
+	text-align: center;
+	color: #563d7c;
+	font-size: 30px;
+	margin-top: 10px;
+	font-weight: bolder;
+	margin-top: 20px;padding: 0px;
+}
+li{
+	list-style: none;
+	padding-left: 20px;
+	height: 50px;
+}
+
+.button_div{
+	height: 20px;
+	padding-left: 20px;
+	color: grey;
+}
+.market_nav,.map_nav{
+	margin: 0px;
+}
+.active .button_div{
+	/*font-weight: bolder;*/
+	text-decoration: none;
+	border-left: 2px solid #563d7c;
+	color: #563d7c;
+}
+.button_div:hover{
+	cursor: pointer;
+	border-left: 2px solid #563d7c;
+	color: #563d7c;
+}
+
+.admin_show{
+	/*position: fixed;*/
+	padding-top: 40px;
+	height:100%;
+	/*right: 0px;*/
+	/*float: right;*/
+	background-color: white;
+	/*box-shadow: 0px 0px 6px 1px #E4E4E4;*/
+}
+.state_label{
+	font-size: 13px;	
+}
+.admin_pic{
+	width: 30px;
+	height: 30px;
+	float: left;
+	margin: 0 0 0 30px;
+}
+.admin_pic:hover{
+	cursor: pointer;
+}
+.showpic{
+	display: none;
+	width: 0px;
+	height: 0px;
+	position: absolute;
+	top: 300px;
+	left: 300px;
+	margin-left: 30%;
+	z-index: 2000;
+}
+.showpic img{
+	border-radius: 20px;
+	width: 100%;
+	height: 100%;
+}
+.model_cover {
+	position:fixed; 
+	top: 0px; 
+	right:0px; 
+	bottom:0px;
+	filter: alpha(opacity=60); 
+	background-color: #777;
+	z-index: 1002; 
+	left: 0px; 
+	display:none;
+	opacity:0.8; 
+	-moz-opacity:0.8;
+}
+.select_year{
+	display: none;
+	width: 30%;
+}
+.select_year .year{
+	font-size: 20px;
+	color: #338ECF;
+}
+.user_table,.goods_table,.uvisit_table{
+	display: none;
+}
+.map1,.map2,.map3,.map4{
+	padding: 0 10px;
+}
+.table-responsive1{
+	overflow-x: auto;
+	
+}

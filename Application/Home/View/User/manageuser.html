@@ -1,0 +1,208 @@
+<?php
+require_once "jssdk.php";
+$jssdk = new JSSDK("wx951ac1092ad9a5bf", "4918f8fab950eddfba7e985f76a97b46");
+$signPackage = $jssdk->GetSignPackage();
+?>
+<!DOCTYPE html>
+<include file="Public/header" />
+<html>
+<head>
+	<title>用户修改页</title>
+</head>
+<body ng-app="myApp" ng-controller="ManageUserController">
+	<include file="Public/detail_head" />
+	<div class="muser_main">
+		<div onclick="uploadpicture()" class="muser_title">
+			<!-- <div class="muser_title_background">
+				<img>
+			</div> -->
+			<img src="__ROOT__/Public/images/no_avatar.jpg" class="img-circle personal_user_img muser_user_img">
+			<button id="uploadpic" class="btn" style="margin-left: 10px;display: none">上传</button>
+			<span class="muser_title_name">用户头像</span>
+		</div>
+		<ul>
+			<li ng-click="ChangeUname()">用户昵称<span class="arrow">></span><span class="uname" ng-bind="user.uname"></span></li>
+			<li ng-show="isUname"><input ng-model="user.uname"/></li>
+<!-- 			<li ng-click="ChangePwd()">修改密码<span>></span></li>
+			<li ng-show="ispwd">原始密码:<input id="originalpwd" type="password" ng-model="originalpwd" /></li>
+			<li ng-show="ispwd">新密码:&nbsp&nbsp&nbsp<input id="pwd1" type="password" ng-model="pwd1" /></li>
+			<li ng-show="ispwd">确认密码:<input id="pwd2" type="password" ng-model="pwd2"/></li>
+		-->			<!-- <a href="#"><li>修改手机<span>></span></li></a> -->
+		<li>
+			居住地：
+			<select ng-change="SelectPorvince()" class="muser_province" ng-model="user.provid" ng-options="item.provid as item.provname for item in province"></select>
+			<select class="muser_city" ng-model="user.cityid" ng-options="item.cityid as item.cityname for item in citys"></select><div class="location" style="float: right;" ng-click="LocatPlace()">地址</div>
+		</li>
+	</ul>
+</div>
+<div class="muser_submit">
+	<div class="submit"  ng-click="submit()">提交</div>
+</div>
+</body>
+<script type="text/javascript">
+	var images = {
+		localId: [],
+		serverId: []
+	};
+	var porvid;
+	var all_citys = {};
+	$("#main_page>a").html("<");
+	$(".detail_head_title").html("个人资料");
+	$("#main_page>a").attr("href","{:U('Home/Main/user')}");
+	var app = angular.module('myApp', []);
+	app.controller('ManageUserController', function($scope) {
+
+		$scope.ispwd = 0;
+		$scope.submit = function(){
+			var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['ManageUser']);
+			client.ManageUser(JSON.stringify($scope.user),function (result) {
+				console.log(result);
+				if(result == 1){
+					window.location.reload();
+				}
+			}, function (name, err) {
+				console.log(err);
+				return;
+			})
+		}
+		$scope.ChangeUname = function(){
+			$scope.isUname = !$scope.isUname;
+		}
+		var citys = {};
+		$scope.SelectPorvince = function(){
+				// console.log($scope.user.provid);
+				// console.log(all_citys);
+				$scope.citys = [];
+				for(var i=0;i<all_citys.length;i++){
+					if(all_citys[i].provid==$scope.user.provid)
+						$scope.citys.push(all_citys[i]);
+				}
+				$scope.user.cityid = $scope.citys[0].cityid;
+			}
+
+			$scope.LocatPlace = function(){
+				wx.getLocation({
+					success: function (res) {
+        				var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+       					var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+        				var speed = res.speed; // 速度，以米/每秒计
+        				var accuracy = res.accuracy; // 位置精度
+        				var jsonstr = {latitude:latitude,longitude: longitude};
+        				var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetLocationDetail']);
+        				client.GetLocationDetail(JSON.stringify(jsonstr),function (result) {
+        					console.log(result);
+        					$scope.user.provid = parseInt(result.addressid.provid);
+        					$scope.user.cityid = parseInt(result.addressid.cityid);
+        					$scope.$apply();
+        				}, function (name, err) {
+        					console.log(err);
+        					return;
+        				})
+        			},
+        			cancel: function (res) {
+        				alert('用户拒绝授权获取地理位置');
+        			}
+        		})
+			}
+		})
+	$(function(){
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['GetUser']);
+		client.GetUser($.cookie('market_usertoken'),function (result) {
+			user = JSON.parse(result);
+			console.log(user);
+			$(".main_img,.personal_user_img,.muser_title_background>img").attr("src","__ROOT__"+user[0].url);
+			var scope = angular.element('[ng-controller=ManageUserController]').scope();
+			scope.$apply(function($scope) {
+				$scope.user = user[0];
+				$scope.user.provid = parseInt($scope.user.provid)
+				$scope.user.cityid = parseInt($scope.user.cityid)
+				provid = user[0].provid;
+
+			})
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetCitysAll']);
+		client.GetCitysAll({},function (result) {
+			all_citys = result;
+			var scope = angular.element('[ng-controller=ManageUserController]').scope();
+			scope.$apply(function($scope) {
+				$scope.citys = [];
+				for(var i=0;i<all_citys.length;i++){
+					if(all_citys[i].provid==$scope.user.provid)
+						$scope.citys.push(all_citys[i]);
+				}
+
+			})
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/Store', ['GetProvince']);
+		client.GetProvince({},function (result) {
+			var scope = angular.element('[ng-controller=ManageUserController]').scope();
+			scope.$apply(function($scope) {
+				$scope.province = result;
+			})
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	})
+	
+
+	function uploadpicture(){
+		wx.chooseImage({
+			success: function (res) {
+				images.localId = res.localIds;
+				$(".personal_user_img").attr("src",images.localId);
+				$("#uploadpic").show();
+				var i = 0, length = images.localId.length;
+				images.serverId = [];
+				function upload() {
+					wx.uploadImage({
+						localId: images.localId[i],
+						success: function (res) {
+							images.serverId.push(res.serverId);
+						},
+						fail: function (res) {
+							alert(JSON.stringify(res));
+						}
+					});
+				}
+				upload();
+			}
+		});
+	}
+	$("#uploadpic").click(function(){
+		$("#uploadpic").hide();
+		var jsonstr = {"token": $.cookie('market_usertoken'),"serverid":images.serverId,"type":1};
+		var client = new HproseHttpClient('__PATHHPROSE__/hprose.php/User', ['uploadUserImg']);
+		client.uploadUserImg(JSON.stringify(jsonstr),function (result) {
+			var jsonobj = JSON.parse(result);
+			if(result == 1){
+				window.location.reload();
+			}
+		}, function (name, err) {
+			console.log(err);
+			return;
+		})
+	})
+	
+	wx.config({
+		debug: false,
+		appId: '<?php echo $signPackage["appId"];?>',
+		timestamp: '<?php echo $signPackage["timestamp"];?>',
+		nonceStr: '<?php echo $signPackage["nonceStr"];?>',
+		signature: '<?php echo $signPackage["signature"];?>',
+		jsApiList: [
+		'chooseImage',
+		'uploadImage',
+		'getLocation'
+		// 'previewImage'
+		]
+	});
+</script>
+</html>
